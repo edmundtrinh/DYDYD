@@ -1,0 +1,97 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Turbo
+.turbo
+
+# React Native
+# Android
+apps/mobile/android/app/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/build/
+apps/mobile/android/local.properties
+*.keystore
+!debug.keystore
+
+# iOS
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/ios/*.xcworkspace
+!apps/mobile/ios/*.xcworkspace/
+apps/mobile/ios/*.xcodeproj/xcuserdata/
+apps/mobile/ios/*.xcodeproj/project.xcworkspace/
+apps/mobile/ios/DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Metro bundler
+.metro-health-check*
+
+# Watchman
+.watchmanconfig
+
+# Testing
+coverage/
+.jest/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+Thumbs.db
+ehthumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Backend specific
+apps/backend/uploads/
+apps/backend/.env
+
+# Secrets
+*.pem
+*.p12
+*.key
+secrets/
+
+# Package manager locks (keep one, ignore others if switching)
+# Uncomment the ones you don't use:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Misc
+.cache/
+*.bak

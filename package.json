@@ -1,0 +1,31 @@
+{
+  "name": "dydyd-monorepo",
+  "version": "1.0.0",
+  "description": "Did You Do Your Dailies? - Gamified habit tracking app",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "mobile": "yarn workspace @dydyd/mobile",
+    "backend": "yarn workspace @dydyd/backend",
+    "shared": "yarn workspace @dydyd/shared",
+    "start:mobile": "yarn mobile start",
+    "start:backend": "yarn backend start",
+    "build:all": "turbo run build",
+    "test:all": "turbo run test",
+    "lint:all": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.0",
+    "prettier": "^3.2.0",
+    "eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "yarn@4.0.0"
+}
