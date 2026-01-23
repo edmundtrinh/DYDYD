@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(corepack enable:*)",
+      "Bash(yarn install)",
+      "Bash(corepack prepare:*)",
+      "Bash(corepack yarn install:*)",
+      "Bash(corepack yarn workspace:*)",
+      "Bash(corepack yarn test:*)",
+      "Bash(corepack yarn dlx prisma generate:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(corepack yarn prisma generate:*)",
+      "Bash(corepack yarn build:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
