@@ -1,0 +1,225 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== User Models ====================
+
+model User {
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  password           String
+  displayName        String
+  avatarUrl          String?
+  totalXP            Int                @default(0)
+  level              Int                @default(1)
+  isPremium          Boolean            @default(false)
+  premiumExpiresAt   DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  settings           UserSettings?
+  categoryPriorities CategoryPriority[]
+  userQuests         UserQuest[]
+  userBadges         UserBadge[]
+  refreshTokens      RefreshToken[]
+  deviceTokens       DeviceToken[]
+  customQuests       Quest[]            @relation("CreatedQuests")
+
+  @@map("users")
+}
+
+model UserSettings {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  notificationsEnabled  Boolean  @default(true)
+  dailyReminderTime     String?  // HH:mm format
+  weeklyResetDay        Int      @default(0) // 0 = Sunday
+  timezone              String   @default("UTC")
+  healthDataSources     String[] @default([])
+  theme                 String   @default("system") // light, dark, system
+  soundEnabled          Boolean  @default(true)
+  hapticFeedbackEnabled Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model CategoryPriority {
+  id        String   @id @default(uuid())
+  userId    String
+  category  String   // QuestCategory enum value
+  priority  Int      // 1-5
+  isEnabled Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@map("category_priorities")
+}
+
+// ==================== Quest Models ====================
+
+model Quest {
+  id                      String   @id @default(uuid())
+  name                    String
+  description             String
+  category                String   // QuestCategory enum value
+  frequency               String   // QuestFrequency enum value
+  baseXP                  Int
+  maxCompletionsPerPeriod Int      @default(1)
+  isDefault               Boolean  @default(false)
+  isCustom                Boolean  @default(false)
+  iconName                String   @default("star")
+  healthDataType          String?  // HealthDataType
+  targetValue             Float?
+  unit                    String?
+  createdById             String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relations
+  userQuests UserQuest[]
+  createdBy  User?       @relation("CreatedQuests", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("quests")
+}
+
+model UserQuest {
+  id               String    @id @default(uuid())
+  userId           String
+  questId          String
+  isActive         Boolean   @default(true)
+  customName       String?
+  customXP         Int?
+  reminderTime     String?
+  reminderEnabled  Boolean   @default(false)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  totalCompletions Int       @default(0)
+  lastCompletedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest       Quest             @relation(fields: [questId], references: [id], onDelete: Cascade)
+  completions QuestCompletion[]
+
+  @@unique([userId, questId])
+  @@map("user_quests")
+}
+
+model QuestCompletion {
+  id          String   @id @default(uuid())
+  userQuestId String
+  completedAt DateTime @default(now())
+  xpEarned    Int
+  value       Float?   // e.g., actual steps taken
+  source      String   @default("manual") // HealthDataSource
+  periodStart DateTime // Start of the day/week this completion belongs to
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  userQuest UserQuest @relation(fields: [userQuestId], references: [id], onDelete: Cascade)
+
+  @@map("quest_completions")
+}
+
+// ==================== Badge Models ====================
+
+model Badge {
+  id                String   @id @default(uuid())
+  name              String   @unique
+  description       String
+  iconName          String
+  type              String   // BadgeType enum value
+  requirementType   String   // BadgeRequirement type
+  requirementValue  Int
+  requirementCategory String?
+  requirementQuestId String?
+  xpBonus           Int      @default(0)
+  rarity            String   @default("common") // common, rare, epic, legendary
+  createdAt         DateTime @default(now())
+
+  // Relations
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// ==================== Auth Models ====================
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ==================== Notification Models ====================
+
+model DeviceToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  platform   String   // DevicePlatform
+  deviceName String?
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("device_tokens")
+}
+
+model Notification {
+  id           String    @id @default(uuid())
+  userId       String
+  type         String    // NotificationType
+  title        String
+  body         String
+  data         Json?
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@map("notifications")
+}
