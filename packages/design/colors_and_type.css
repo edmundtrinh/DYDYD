@@ -1,0 +1,247 @@
+/* ============================================
+ * DYDYD Design System — Colors & Type
+ * ============================================
+ * Source of truth for all visual primitives.
+ * Tone: classic action-RPG. Pure primary colors,
+ * dark stone-and-ink surfaces, functional not cute.
+ * ============================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+:root {
+  /* ---------- SURFACES (the dungeon stone) ---------- */
+  --bg-void:        #07070D;   /* deepest behind everything */
+  --bg-base:        #0F0F1A;   /* app background, dark navy-ink */
+  --bg-surface-1:   #1A1A2E;   /* cards, sheets, panels */
+  --bg-surface-2:   #232338;   /* raised within a card */
+  --bg-surface-3:   #2A2A3E;   /* tracks, borders, dividers */
+  --bg-pressed:     #252538;   /* press state on cards */
+  --bg-overlay:     rgba(7, 7, 13, 0.72);
+
+  /* ---------- INK (text & icons) ---------- */
+  --fg-1:           #FFFFFF;   /* primary text */
+  --fg-2:           #B7B7CC;   /* body, slightly dim */
+  --fg-3:           #888899;   /* secondary / metadata */
+  --fg-4:           #5A5A6E;   /* tertiary / disabled */
+  --fg-on-color:    #0B0B12;   /* text on bright primaries (gold, lime) */
+
+  /* ---------- PRIMARIES (RPG class colors) ---------- */
+  /* Pure, saturated, NOT pastel/neon. */
+  --c-quest-green:  #2EA043;   /* SUCCESS · Physical Health · primary CTA */
+  --c-quest-green-bright: #34C75A; /* hover/highlight */
+  --c-quest-green-dim:    #1F6B2E; /* press/track */
+
+  --c-mana-blue:    #2563EB;   /* Career & Productivity · info */
+  --c-mana-blue-bright: #3B82F6;
+  --c-mana-blue-dim:    #1E3A8A;
+
+  --c-arcane-purple:#7C3AED;   /* Mental Wellness · level/XP */
+  --c-arcane-purple-bright: #8B5CF6;
+  --c-arcane-purple-dim:    #4C1D95;
+
+  --c-flame-orange: #EA580C;   /* Home & Chores · streak base */
+  --c-flame-orange-bright: #F97316;
+  --c-flame-orange-dim:    #9A3412;
+
+  --c-heart-red:    #DC2626;   /* Relationships · danger */
+  --c-heart-red-bright: #EF4444;
+  --c-heart-red-dim:    #7F1D1D;
+
+  --c-loot-gold:    #F5B400;   /* XP, premium, total */
+  --c-loot-gold-bright: #FBBF24;
+  --c-loot-gold-dim:    #92740B;
+
+  /* Streak fire is its own thing — gold-orange gradient anchor */
+  --c-streak:       #F59E0B;
+
+  /* ---------- RARITY (loot tier colors) ---------- */
+  --c-rarity-common:    #9CA3AF;  /* slate gray */
+  --c-rarity-uncommon:  #2EA043;  /* green */
+  --c-rarity-rare:      #2563EB;  /* blue */
+  --c-rarity-epic:      #7C3AED;  /* purple */
+  --c-rarity-legendary: #F5B400;  /* gold */
+  --c-rarity-mythic:    #DC2626;  /* red */
+
+  /* ---------- SEMANTIC ALIASES ---------- */
+  --color-bg:           var(--bg-base);
+  --color-card:         var(--bg-surface-1);
+  --color-divider:      var(--bg-surface-3);
+  --color-border:       var(--bg-surface-3);
+  --color-border-strong:#3A3A55;
+
+  --color-text:         var(--fg-1);
+  --color-text-muted:   var(--fg-3);
+
+  --color-primary:      var(--c-quest-green);   /* main CTA */
+  --color-success:      var(--c-quest-green);
+  --color-info:         var(--c-mana-blue);
+  --color-warn:         var(--c-flame-orange);
+  --color-danger:       var(--c-heart-red);
+  --color-xp:           var(--c-loot-gold);
+
+  /* category aliases — match shared/constants.ts category roles */
+  --cat-physical:       var(--c-quest-green);
+  --cat-mental:         var(--c-arcane-purple);
+  --cat-career:         var(--c-mana-blue);
+  --cat-relationships:  var(--c-heart-red);
+  --cat-home:           var(--c-flame-orange);
+
+  /* ---------- TYPOGRAPHY ---------- */
+  /* Display — Sora: geometric, weight, no-nonsense (action-RPG menus) */
+  --font-display: "Sora", "SF Pro Display", system-ui, sans-serif;
+  /* Body — Manrope: legible, friendly without being cute */
+  --font-body:    "Manrope", "SF Pro Text", system-ui, sans-serif;
+  /* Numerals & monospace — JetBrains Mono */
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Type scale — built for mobile-first 16px base */
+  --fs-display:  44px;
+  --fs-h1:       32px;
+  --fs-h2:       24px;
+  --fs-h3:       20px;
+  --fs-h4:       18px;
+  --fs-body:     16px;
+  --fs-body-sm:  14px;
+  --fs-caption:  12px;
+  --fs-micro:    11px;
+
+  --lh-tight:    1.05;
+  --lh-snug:     1.2;
+  --lh-base:     1.5;
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semi:     600;
+  --fw-bold:     700;
+  --fw-heavy:    800;
+
+  --tracking-display: -0.02em;
+  --tracking-tight:   -0.01em;
+  --tracking-loose:   0.04em;
+  --tracking-caps:    0.12em;
+
+  /* ---------- RADII ---------- */
+  --r-xs:  4px;
+  --r-sm:  8px;
+  --r-md:  12px;   /* default card */
+  --r-lg:  16px;   /* big card / sheet */
+  --r-xl:  20px;
+  --r-2xl: 24px;
+  --r-pill:9999px;
+
+  /* ---------- SPACING ---------- */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-7:  32px;
+  --s-8:  40px;
+  --s-9:  48px;
+  --s-10: 64px;
+
+  /* ---------- ELEVATION ---------- */
+  /* Shadows are heavy & dark — we live on a near-black bg. */
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-2: 0 4px 12px rgba(0,0,0,0.45);
+  --shadow-3: 0 12px 32px rgba(0,0,0,0.55);
+  /* Glow — bright primary halo on hover/active for items */
+  --glow-green:  0 0 0 1px rgba(46,160,67,0.55), 0 0 24px rgba(46,160,67,0.35);
+  --glow-gold:   0 0 0 1px rgba(245,180,0,0.6),  0 0 24px rgba(245,180,0,0.4);
+  --glow-purple: 0 0 0 1px rgba(124,58,237,0.55),0 0 24px rgba(124,58,237,0.35);
+
+  /* Inner stroke / bevel effect on cards */
+  --inner-stroke: inset 0 0 0 1px rgba(255,255,255,0.04);
+  --inner-bevel:  inset 0 1px 0 rgba(255,255,255,0.06),
+                  inset 0 -1px 0 rgba(0,0,0,0.4);
+
+  /* ---------- MOTION ---------- */
+  --easing-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --easing-in:     cubic-bezier(0.55, 0, 0.85, 0);
+  --easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot */
+  --dur-fast:    120ms;
+  --dur-base:    220ms;
+  --dur-slow:    420ms;
+
+  /* ---------- HIT TARGETS ---------- */
+  --hit-min:     44px;
+}
+
+/* ---------- BASE TYPOGRAPHY UTILITIES ---------- */
+.dy-display {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--fw-heavy);
+  color: var(--fg-1);
+}
+.dy-h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: var(--fw-bold);
+  color: var(--fg-1);
+}
+.dy-h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: var(--fw-bold);
+  color: var(--fg-1);
+}
+.dy-h3 {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-snug);
+  font-weight: var(--fw-semi);
+  color: var(--fg-1);
+}
+.dy-h4 {
+  font-family: var(--font-body);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-snug);
+  font-weight: var(--fw-semi);
+  color: var(--fg-1);
+}
+.dy-body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-base);
+  font-weight: var(--fw-regular);
+  color: var(--fg-2);
+}
+.dy-body-sm {
+  font-family: var(--font-body);
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-base);
+  color: var(--fg-2);
+}
+.dy-caption {
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-base);
+  color: var(--fg-3);
+}
+.dy-eyebrow {
+  font-family: var(--font-display);
+  font-size: var(--fs-micro);
+  line-height: 1;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.dy-num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-weight: var(--fw-heavy);
+  letter-spacing: var(--tracking-tight);
+}
+.dy-mono {
+  font-family: var(--font-mono);
+}

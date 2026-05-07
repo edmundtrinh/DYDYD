@@ -1,0 +1,20 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Elevation</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:24px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{height:110px;background:#1A1A2E;border-radius:12px;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;border:1px solid #2A2A3E}
+  .s1{box-shadow:0 1px 2px rgba(0,0,0,0.5)}
+  .s2{box-shadow:0 4px 12px rgba(0,0,0,0.45)}
+  .s3{box-shadow:0 12px 32px rgba(0,0,0,0.55)}
+  .name{font-family:var(--font-display);font-weight:700;font-size:13px}
+  .meta{font-family:var(--font-mono);font-size:10px;color:#888899}
+</style></head>
+<body>
+<div class="grid">
+  <div class="card s1"><div class="name">Shadow 1</div><div class="meta">0 1 2 · inputs, chips</div></div>
+  <div class="card s2"><div class="name">Shadow 2</div><div class="meta">0 4 12 · default card</div></div>
+  <div class="card s3"><div class="name">Shadow 3</div><div class="meta">0 12 32 · modals, hero</div></div>
+</div>
+</body></html>

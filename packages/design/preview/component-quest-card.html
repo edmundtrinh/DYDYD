@@ -1,0 +1,38 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Quest Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:18px;display:flex;flex-direction:column;gap:10px}
+  .card{position:relative;display:flex;align-items:center;gap:12px;background:#1A1A2E;border:1px solid #2A2A3E;border-radius:12px;padding:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.45),inset 0 0 0 1px rgba(255,255,255,0.04)}
+  .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:10px}
+  .body{flex:1}
+  .name{font-family:var(--font-body);font-weight:600;font-size:15px}
+  .meta{font-family:var(--font-mono);font-size:11px;color:#888899;margin-top:4px}
+  .xp{font-family:var(--font-display);font-weight:700;color:#F5B400;font-size:14px;margin-right:12px}
+  .xp small{display:block;font-size:10px;color:#888899;text-align:center;font-weight:500}
+  .check{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:10px;background:#2EA043;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .done .name{text-decoration:line-through;color:#888}
+  .done{opacity:0.6}
+</style></head>
+<body>
+  <div class="card">
+    <div class="bar" style="background:#2EA043"></div>
+    <div class="icon" style="background:#2EA04333">💪</div>
+    <div class="body"><div class="name">Walk 10,000 Steps</div><div class="meta">Daily · +10 XP · Auto</div></div>
+    <div class="xp">+10<small>XP</small></div>
+  </div>
+  <div class="card done">
+    <div class="bar" style="background:#7C3AED"></div>
+    <div class="icon" style="background:#7C3AED33">🧠</div>
+    <div class="body"><div class="name">Meditate</div><div class="meta">Daily · +3 XP · 🔥 12 day streak</div></div>
+    <div class="xp" style="color:#2EA043">+3<small>XP</small></div>
+    <div class="check">✓</div>
+  </div>
+  <div class="card">
+    <div class="bar" style="background:#EA580C"></div>
+    <div class="icon" style="background:#EA580C33">🏠</div>
+    <div class="body"><div class="name">Make Your Bed</div><div class="meta">Daily · +1 XP</div></div>
+    <div class="xp">+1<small>XP</small></div>
+  </div>
+</body></html>

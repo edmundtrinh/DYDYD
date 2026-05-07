@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>XP Bar</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:22px}
+  .stack{display:flex;flex-direction:column;gap:18px}
+  .row .lbl{display:flex;justify-content:space-between;font-family:var(--font-display);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700}
+  .lbl .cur{color:#2EA043}
+  .lbl .tgt{color:#888899}
+  .track{height:8px;background:#2A2A3E;border-radius:4px;overflow:hidden;margin-top:6px;position:relative}
+  .fill{height:100%;border-radius:4px}
+  .small .track{height:4px}
+  .pill{display:inline-block;background:#2EA043;color:#fff;font-family:var(--font-display);font-weight:700;font-size:13px;padding:4px 12px;border-radius:9999px;margin-bottom:6px}
+</style></head>
+<body>
+<div class="stack">
+  <div class="row">
+    <div><span class="pill">Level 23</span></div>
+    <div class="lbl"><span class="cur">1,200 XP</span><span class="tgt">1,750 XP</span></div>
+    <div class="track"><div class="fill" style="width:68%;background:#2EA043"></div></div>
+  </div>
+  <div class="row small">
+    <div class="lbl"><span class="cur" style="color:#fff">Walk 10,000 Steps</span><span class="tgt">7,420 / 10,000</span></div>
+    <div class="track"><div class="fill" style="width:74%;background:#2EA043"></div></div>
+  </div>
+  <div class="row small">
+    <div class="lbl"><span class="cur" style="color:#fff">Drink Water</span><span class="tgt">5 / 8 cups</span></div>
+    <div class="track"><div class="fill" style="width:62%;background:#2563EB"></div></div>
+  </div>
+</div>
+</body></html>

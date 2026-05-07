@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Colors · Rarity</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:18px}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  .cell{background:#1A1A2E;border:1px solid #2A2A3E;border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .gem{width:48px;height:48px;clip-path:polygon(50% 0,100% 30%,82% 100%,18% 100%,0 30%)}
+  .name{font-family:var(--font-display);font-weight:700;font-size:12px;text-transform:capitalize}
+  .hex{font-family:var(--font-mono);font-size:10px;color:#888899}
+</style></head>
+<body>
+  <div class="grid">
+    <div class="cell"><div class="gem" style="background:#9CA3AF"></div><div class="name">common</div><div class="hex">#9CA3AF</div></div>
+    <div class="cell"><div class="gem" style="background:#2EA043"></div><div class="name">uncommon</div><div class="hex">#2EA043</div></div>
+    <div class="cell"><div class="gem" style="background:#2563EB"></div><div class="name">rare</div><div class="hex">#2563EB</div></div>
+    <div class="cell"><div class="gem" style="background:#7C3AED"></div><div class="name">epic</div><div class="hex">#7C3AED</div></div>
+    <div class="cell"><div class="gem" style="background:#F5B400"></div><div class="name">legendary</div><div class="hex">#F5B400</div></div>
+    <div class="cell"><div class="gem" style="background:#DC2626"></div><div class="name">mythic</div><div class="hex">#DC2626</div></div>
+  </div>
+</body></html>

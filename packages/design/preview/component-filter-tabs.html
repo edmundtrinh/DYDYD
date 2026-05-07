@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Filter Tabs</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:20px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9999px;background:#1A1A2E;border:1px solid #2A2A3E;font-family:var(--font-display);font-weight:600;font-size:13px;color:#888899;cursor:pointer}
+  .active{background:rgba(46,160,67,0.18);border-color:#2EA043;color:#34C75A}
+  .badge{background:#2EA043;color:#fff;font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:9999px;font-weight:700}
+  .cat-mental.active{background:rgba(124,58,237,0.18);border-color:#7C3AED;color:#8B5CF6}
+  .cat-career.active{background:rgba(37,99,235,0.18);border-color:#2563EB;color:#3B82F6}
+  .cat-rel.active{background:rgba(220,38,38,0.18);border-color:#DC2626;color:#EF4444}
+  .cat-home.active{background:rgba(234,88,12,0.18);border-color:#EA580C;color:#F97316}
+</style></head>
+<body>
+  <div class="row">
+    <span class="tab active">All</span>
+    <span class="tab">Active <span class="badge">5</span></span>
+    <span class="tab">💪</span>
+    <span class="tab cat-mental active">🧠</span>
+    <span class="tab cat-career">💼</span>
+    <span class="tab cat-rel">❤️</span>
+    <span class="tab cat-home">🏠</span>
+  </div>
+</body></html>
