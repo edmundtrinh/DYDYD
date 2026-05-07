@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Voice</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .col{background:#1A1A2E;border:1px solid #2A2A3E;border-radius:12px;padding:14px}
+  .ttl{font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px}
+  .yes{color:#34C75A}
+  .no{color:#EF4444}
+  .ex{font-family:var(--font-body);font-size:13px;line-height:1.5;color:#B7B7CC;margin-bottom:6px}
+  .ex::before{content:attr(data-mark);display:inline-block;width:18px;font-weight:800}
+  .y::before{color:#34C75A}
+  .n::before{color:#EF4444}
+</style></head>
+<body>
+<div class="grid">
+  <div class="col">
+    <div class="ttl yes">Do — GM voice</div>
+    <div class="ex y" data-mark="✓">"Walk 10,000 Steps"</div>
+    <div class="ex y" data-mark="✓">"Quest complete. +10 XP."</div>
+    <div class="ex y" data-mark="✓">"No quests yet! Add some to start your journey."</div>
+    <div class="ex y" data-mark="✓">"Good morning, Adventurer!"</div>
+  </div>
+  <div class="col">
+    <div class="ttl no">Don't — sugar</div>
+    <div class="ex n" data-mark="✕">"Walking 10K steps is sooo good for you!! 🥰"</div>
+    <div class="ex n" data-mark="✕">"Amazing job! You're absolutely crushing it!!"</div>
+    <div class="ex n" data-mark="✕">"Looks empty in here… add a quest, friend?"</div>
+    <div class="ex n" data-mark="✕">"Heyyy bestie ☀️ ready to slay today??"</div>
+  </div>
+</div>
+</body></html>

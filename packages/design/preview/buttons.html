@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Buttons</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:20px;display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;gap:10px;align-items:center}
+  .btn{font-family:var(--font-display);font-weight:700;border-radius:9999px;padding:10px 18px;font-size:14px;border:1px solid transparent;cursor:pointer}
+  .primary{background:#2EA043;color:#fff}
+  .gold{background:#F5B400;color:#0B0B12}
+  .ghost{background:transparent;color:#fff;border:1px solid #2A2A3E}
+  .danger{background:transparent;color:#EF4444;border:1px solid #DC2626}
+  .icon{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;background:#1A1A2E;border:1px solid #2A2A3E;border-radius:9999px;font-size:20px;cursor:pointer}
+  .label{font-family:var(--font-mono);font-size:10px;color:#888899;width:64px}
+</style></head>
+<body>
+  <div class="row"><span class="label">primary</span><button class="btn primary">+ Add Quests</button><button class="btn primary">Complete</button></div>
+  <div class="row"><span class="label">gold</span><button class="btn gold">Claim XP</button><button class="btn gold">Go Premium</button></div>
+  <div class="row"><span class="label">ghost</span><button class="btn ghost">Cancel</button><button class="btn ghost">See All →</button></div>
+  <div class="row"><span class="label">danger</span><button class="btn danger">Remove Quest</button></div>
+  <div class="row"><span class="label">icon</span><span class="icon">⚙️</span><span class="icon">+</span><span class="icon">✓</span></div>
+</body></html>

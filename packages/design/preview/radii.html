@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Radii</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:20px}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .box{width:80px;height:80px;background:#1A1A2E;border:1px solid #2A2A3E;display:flex;align-items:center;justify-content:center}
+  .name{font-family:var(--font-mono);font-size:10px;color:#888899}
+  .val{font-family:var(--font-mono);font-size:10px;color:#fff}
+</style></head>
+<body>
+<div class="grid">
+  <div class="cell"><div class="box" style="border-radius:4px"></div><div class="name">--r-xs</div><div class="val">4</div></div>
+  <div class="cell"><div class="box" style="border-radius:8px"></div><div class="name">--r-sm</div><div class="val">8</div></div>
+  <div class="cell"><div class="box" style="border-radius:12px"></div><div class="name">--r-md</div><div class="val">12 (default)</div></div>
+  <div class="cell"><div class="box" style="border-radius:16px"></div><div class="name">--r-lg</div><div class="val">16</div></div>
+  <div class="cell"><div class="box" style="border-radius:20px"></div><div class="name">--r-xl</div><div class="val">20</div></div>
+  <div class="cell"><div class="box" style="border-radius:24px"></div><div class="name">--r-2xl</div><div class="val">24</div></div>
+  <div class="cell"><div class="box" style="border-radius:9999px"></div><div class="name">--r-pill</div><div class="val">∞</div></div>
+</div>
+</body></html>

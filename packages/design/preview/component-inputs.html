@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Inputs</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:#0F0F1A;color:#fff;font-family:var(--font-body);padding:18px;display:flex;flex-direction:column;gap:12px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .lbl{font-family:var(--font-display);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#888899}
+  input,select,textarea{background:#232338;border:1px solid #2A2A3E;border-radius:12px;color:#fff;padding:10px 12px;font-family:var(--font-body);font-size:14px;outline:none}
+  input:focus{border-color:#F5B400;box-shadow:0 0 0 2px rgba(245,180,0,0.4)}
+  .toggle{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:14px}
+  .switch{width:42px;height:24px;background:#2EA043;border-radius:12px;position:relative}
+  .switch::after{content:"";position:absolute;top:2px;right:2px;width:20px;height:20px;background:#fff;border-radius:10px}
+  .switch.off{background:#2A2A3E}
+  .switch.off::after{right:auto;left:2px}
+</style></head>
+<body>
+  <div class="field"><label class="lbl">Quest Name</label><input value="Run 5K"></div>
+  <div class="field"><label class="lbl">XP Reward</label><input value="5" type="number" style="max-width:120px"></div>
+  <div class="field"><label class="lbl">Frequency</label><select><option>Daily</option><option>Weekly</option><option>Monthly</option></select></div>
+  <div class="field"><label class="lbl">Auto-track from Health</label>
+    <div style="display:flex;gap:14px"><label class="toggle"><span class="switch"></span>On</label><label class="toggle"><span class="switch off"></span>Off</label></div>
+  </div>
+</body></html>
