@@ -3,9 +3,11 @@
 > Single source of truth for what's planned, in progress, and complete.
 > Owned by PRODUCT agent. All agents read.
 
-## Current Phase: Phase 0 — Unblock Everything
+## Current Phase: Phase 1 — Core Feature Completion
 
-### Status: IN PROGRESS
+## Phase 0 — Unblock Everything
+
+### Status: COMPLETE (2026-05-28)
 
 | Task | Status | Owner |
 |------|--------|-------|
@@ -14,8 +16,9 @@
 | Create ThemeProvider + hooks + LoadingScreen | DONE | MOBILE |
 | Set up agent definitions (7 agents) | DONE | ALL |
 | Set up `specs/` directory | DONE | PRODUCT |
-| Verify `yarn build:all` succeeds | PENDING | ARCHITECT |
-| Gate 0 sign-off | PENDING | FOUNDER |
+| Verify build succeeds (all packages 0 errors) | DONE | ARCHITECT |
+| Shared package tests (120/120 passing) | DONE | QA |
+| Gate 0 sign-off | DONE | FOUNDER |
 
 ---
 
@@ -24,27 +27,27 @@
 ### Track A — Backend
 | Task | Status | Owner |
 |------|--------|-------|
-| Badge routes (library, user, check/award) | PENDING | ARCHITECT |
-| Notification routes + Firebase integration | PENDING | ARCHITECT |
-| Health sync endpoint | PENDING | ARCHITECT |
-| Password reset flow | PENDING | ARCHITECT |
-| Fix streak logic (real day-over-day) | PENDING | ARCHITECT |
+| Badge routes (library, user, check/award) | DONE | ARCHITECT |
+| Notification routes (device-token, history, read) | DONE | ARCHITECT |
+| Health sync endpoint (auto-complete quests) | DONE | ARCHITECT |
+| Password reset flow (forgot + reset) | DONE | ARCHITECT |
+| Fix streak logic (real day-over-day) | DONE | ARCHITECT |
 
 ### Track B — Mobile Screens
 | Task | Status | Owner |
 |------|--------|-------|
-| ThemeProvider (full design system integration) | DONE (stub) | MOBILE |
-| Component library (Button, Input, Card, XPBar, Badge) | PENDING | MOBILE |
-| Auth screens (Welcome, Login, Register, ForgotPassword) | DONE (functional) | MOBILE |
-| Onboarding screens (5 steps) | DONE (functional) | MOBILE |
-| Progress screens (Progress, Badges) | DONE (stub) | MOBILE |
+| ThemeProvider (full design system integration) | DONE | MOBILE |
+| Component library (Button, Input, Card, XPBar, Badge, QuestCard, CategoryIcon, StatCard) | DONE | MOBILE |
+| Auth screens (Welcome, Login, Register, ForgotPassword) — polished | DONE | MOBILE |
+| Onboarding screens (CategoryPriority, SelectQuests, OnboardingComplete) — polished | DONE | MOBILE |
+| Progress screens (Progress, Badges) — polished | DONE | MOBILE |
 | Settings screens (Settings, Notifications, HealthIntegrations) | DONE (stub) | MOBILE |
 | AddQuestScreen | DONE (functional) | MOBILE |
 
 ### Track C — Specs & Compliance
 | Task | Status | Owner |
 |------|--------|-------|
-| PRDs for all feature groups | PENDING | PRODUCT |
+| PRDs for all feature groups | IN PROGRESS | PRODUCT |
 | Privacy Policy draft | PENDING | COMPLIANCE |
 | Terms of Service draft | PENDING | COMPLIANCE |
 | Onboarding funnel metrics + analytics taxonomy | PENDING | GROWTH |
