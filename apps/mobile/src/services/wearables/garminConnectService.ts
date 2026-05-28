@@ -82,9 +82,9 @@ class GarminConnectService {
         name: (q.quest?.name || 'Quest').substring(0, 30), // Garmin has limited display
         icon: this.getCategoryIcon(q.quest?.category),
         target: q.quest?.targetValue || 1,
-        current: q.currentValue || 0,
-        done: q.completedToday ? 1 : 0,
-        xp: q.quest?.xpValue || 0,
+        current: (q as any).currentValue || 0,
+        done: (q as any).completedToday ? 1 : 0,
+        xp: q.quest?.baseXP || 0,
       }));
 
       const targetDevice = deviceId || this.connectedDevices[0]?.id;

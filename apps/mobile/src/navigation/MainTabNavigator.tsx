@@ -5,21 +5,22 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/Feather';
+import _Icon from 'react-native-vector-icons/Feather';
+const Icon = _Icon as unknown as React.ComponentType<{ name: string; size: number; color: string }>;
 
 import { useTheme } from '../theme/ThemeProvider';
 
 // Screens
-import { HomeScreen } from '../screens/Home/HomeScreen';
-import { QuestsScreen } from '../screens/Quests/QuestsScreen';
-import { QuestDetailScreen } from '../screens/Quests/QuestDetailScreen';
-import { AddQuestScreen } from '../screens/Quests/AddQuestScreen';
+import { HomeScreen } from '../screens/home/HomeScreen';
+import { QuestsScreen } from '../screens/quests/QuestsScreen';
+import { QuestDetailScreen } from '../screens/quests/QuestDetailScreen';
+import { AddQuestScreen } from '../screens/quests/AddQuestScreen';
 import { ProgressScreen } from '../screens/Progress/ProgressScreen';
 import { BadgesScreen } from '../screens/Progress/BadgesScreen';
-import { ProfileScreen } from '../screens/Profile/ProfileScreen';
-import { SettingsScreen } from '../screens/Profile/SettingsScreen';
-import { NotificationsScreen } from '../screens/Profile/NotificationsScreen';
-import { HealthIntegrationsScreen } from '../screens/Profile/HealthIntegrationsScreen';
+import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { SettingsScreen } from '../screens/profile/SettingsScreen';
+import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
+import { HealthIntegrationsScreen } from '../screens/profile/HealthIntegrationsScreen';
 
 // Type definitions for navigation
 export type HomeStackParamList = {

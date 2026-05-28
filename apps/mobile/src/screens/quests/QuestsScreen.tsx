@@ -266,14 +266,14 @@ const FilterTab: React.FC<FilterTabProps> = ({ label, isActive, onPress, count, 
         style={[
           styles.filterTab,
           isActive && styles.filterTabActive,
-          color && isActive && { backgroundColor: color + '30', borderColor: color },
+          color && isActive ? { backgroundColor: color + '30', borderColor: color } : undefined,
         ]}
       >
         <Text
           style={[
             styles.filterTabText,
             isActive && styles.filterTabTextActive,
-            color && isActive && { color },
+            color && isActive ? { color } : undefined,
           ]}
         >
           {label}
@@ -683,4 +683,5 @@ const styles = StyleSheet.create({
   },
 });
 
+export { QuestsScreen };
 export default QuestsScreen;

@@ -95,9 +95,9 @@ class SamsungWearablesService {
         category: q.quest?.category,
         icon: this.getCategoryEmoji(q.quest?.category),
         targetValue: q.quest?.targetValue || 1,
-        currentValue: q.currentValue || 0,
-        isCompleted: q.completedToday,
-        xpValue: q.quest?.xpValue || 0,
+        currentValue: (q as any).currentValue || 0,
+        isCompleted: (q as any).completedToday,
+        xpValue: q.quest?.baseXP || 0,
       }));
 
       if (targetDevice.platform === 'wearos') {

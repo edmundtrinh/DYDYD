@@ -25,11 +25,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppDispatch, RootState } from '../../store';
-import { fetchUserQuests, completeQuest, selectTodayQuests } from '../../store/slices/questsSlice';
+import { fetchUserQuests, completeQuest, selectDailyQuests, selectCompletedQuestIds } from '../../store/slices/questsSlice';
 import { fetchUserStats, selectUserStats } from '../../store/slices/progressSlice';
-import { selectUser, selectCategoryPriorities } from '../../store/slices/userSlice';
-import { syncHealth, selectTodayHealthData } from '../../store/slices/healthSlice';
-import { CATEGORIES, calculateLevel, XP_PER_LEVEL_BASE } from '@dydyd/shared';
+import { selectProfile, selectCategoryPriorities } from '../../store/slices/userSlice';
+import { syncHealthData, selectTodayHealthData } from '../../store/slices/healthSlice';
+import { CATEGORY_METADATA, calculateLevelProgress, HealthDataSource, QuestCategory } from '@dydyd/shared';
 import { wearablesManager } from '../../services/wearables';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -93,7 +93,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, index, onComplete }) => {
     onComplete(quest.id);
   }, [quest.id, onComplete]);
   
-  const category = CATEGORIES[quest.quest?.category] || CATEGORIES.physical_health;
+  const category = CATEGORY_METADATA[quest.quest?.category as QuestCategory] || CATEGORY_METADATA[QuestCategory.PHYSICAL_HEALTH];
   const progress = quest.quest?.targetValue > 1 
     ? (quest.currentValue || 0) / quest.quest.targetValue 
     : quest.completedToday ? 1 : 0;
@@ -140,7 +140,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, index, onComplete }) => {
         
         <View style={styles.questXP}>
           <Text style={[styles.questXPValue, quest.completedToday && styles.questXPCompleted]}>
-            +{quest.quest?.xpValue || 0}
+            +{quest.quest?.baseXP || 0}
           </Text>
           <Text style={styles.questXPLabel}>XP</Text>
         </View>
@@ -171,18 +171,24 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   
-  const user = useSelector(selectUser);
+  const user = useSelector(selectProfile);
   const stats = useSelector(selectUserStats);
-  const todayQuests = useSelector(selectTodayQuests);
+  const dailyQuests = useSelector(selectDailyQuests);
+  const completedIds = useSelector(selectCompletedQuestIds);
   const healthData = useSelector(selectTodayHealthData);
   const priorities = useSelector(selectCategoryPriorities);
-  const isLoading = useSelector((state: RootState) => state.quests.isLoading);
+  const isLoading = useSelector((state: RootState) => state.quests.isLoadingUserQuests);
+
+  const todayQuests = useMemo(() =>
+    dailyQuests.map(q => ({ ...q, completedToday: completedIds.has(q.id) })),
+    [dailyQuests, completedIds]
+  );
   
   // Calculate derived values
   const todayXP = useMemo(() => {
     return todayQuests
       .filter(q => q.completedToday)
-      .reduce((sum, q) => sum + (q.quest?.xpValue || 0), 0);
+      .reduce((sum, q) => sum + (q.quest?.baseXP || 0), 0);
   }, [todayQuests]);
   
   const completedCount = useMemo(() => 
@@ -193,16 +199,18 @@ export const HomeScreen: React.FC = () => {
   const totalCount = todayQuests.length;
   const completionProgress = totalCount > 0 ? completedCount / totalCount : 0;
   
-  const { level, progressToNext } = useMemo(() => 
-    calculateLevel(user?.totalXP || 0), 
+  const levelProgress = useMemo(() =>
+    calculateLevelProgress(user?.totalXP || 0),
     [user?.totalXP]
   );
+  const level = levelProgress.currentLevel;
+  const progressToNext = levelProgress.progressPercent / 100;
   
   // Load data
   useEffect(() => {
     dispatch(fetchUserQuests());
     dispatch(fetchUserStats());
-    dispatch(syncHealth());
+    dispatch(syncHealthData());
   }, [dispatch]);
   
   // Sync to wearables when quests change
@@ -214,26 +222,26 @@ export const HomeScreen: React.FC = () => {
       level,
       completedCount,
       totalCount,
-      currentStreak: stats?.currentStreak || 0,
+      currentStreak: stats?.currentDayStreak || 0,
     });
-  }, [todayQuests, todayXP, user?.totalXP, level, completedCount, totalCount, stats?.currentStreak]);
+  }, [todayQuests, todayXP, user?.totalXP, level, completedCount, totalCount, stats?.currentDayStreak]);
   
   // Refresh handler
   const handleRefresh = useCallback(() => {
     dispatch(fetchUserQuests());
     dispatch(fetchUserStats());
-    dispatch(syncHealth());
+    dispatch(syncHealthData());
   }, [dispatch]);
   
   // Complete quest handler
   const handleCompleteQuest = useCallback((questId: string) => {
-    dispatch(completeQuest({ userQuestId: questId, value: 1, source: 'manual' }));
+    dispatch(completeQuest({ userQuestId: questId, value: 1, source: HealthDataSource.MANUAL }));
   }, [dispatch]);
   
   // Sort quests by priority
   const sortedQuests = useMemo(() => {
-    const priorityMap = new Map(priorities.map(p => [p.category, p.priority]));
-    return [...todayQuests].sort((a, b) => {
+    const priorityMap = new Map((priorities || []).map((p: any) => [p.category, p.priority]));
+    return [...todayQuests].sort((a: any, b: any) => {
       // Incomplete first
       if (a.completedToday !== b.completedToday) {
         return a.completedToday ? 1 : -1;
@@ -259,7 +267,7 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>
-              {getGreeting()}, {user?.name?.split(' ')[0] || 'Adventurer'}!
+              {getGreeting()}, {user?.displayName?.split(' ')[0] || 'Adventurer'}!
             </Text>
             <Text style={styles.date}>{formatDate(new Date())}</Text>
           </View>
@@ -303,7 +311,7 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.statsRow}>
           <StatCard 
             title="Streak" 
-            value={stats?.currentStreak || 0} 
+            value={stats?.currentDayStreak || 0} 
             subtitle="days"
             icon="🔥" 
             color="#FF9800" 
@@ -324,25 +332,25 @@ export const HomeScreen: React.FC = () => {
         </View>
         
         {/* Health Data (if available) */}
-        {healthData && (healthData.steps || healthData.sleepHours) && (
+        {healthData && (healthData.steps || healthData.sleep_hours) && (
           <View style={styles.healthSection}>
             <Text style={styles.sectionTitle}>📱 Today's Activity</Text>
             <View style={styles.healthRow}>
-              {healthData.steps !== undefined && (
+              {healthData.steps && (
                 <View style={styles.healthItem}>
-                  <Text style={styles.healthValue}>{formatNumber(healthData.steps)}</Text>
+                  <Text style={styles.healthValue}>{formatNumber(healthData.steps.value)}</Text>
                   <Text style={styles.healthLabel}>steps</Text>
                 </View>
               )}
-              {healthData.sleepHours !== undefined && (
+              {healthData.sleep_hours && (
                 <View style={styles.healthItem}>
-                  <Text style={styles.healthValue}>{healthData.sleepHours.toFixed(1)}</Text>
+                  <Text style={styles.healthValue}>{healthData.sleep_hours.value.toFixed(1)}</Text>
                   <Text style={styles.healthLabel}>hours sleep</Text>
                 </View>
               )}
-              {healthData.workoutMinutes !== undefined && (
+              {healthData.workout_minutes && (
                 <View style={styles.healthItem}>
-                  <Text style={styles.healthValue}>{healthData.workoutMinutes}</Text>
+                  <Text style={styles.healthValue}>{healthData.workout_minutes.value}</Text>
                   <Text style={styles.healthLabel}>min workout</Text>
                 </View>
               )}
