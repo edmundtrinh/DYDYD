@@ -75,8 +75,8 @@ router.get(
       });
 
       // Calculate current streak (simplified - would need more complex logic)
-      const maxStreak = Math.max(...userQuests.map(q => q.currentStreak), 0);
-      const longestStreak = Math.max(...userQuests.map(q => q.longestStreak), 0);
+      const maxStreak = Math.max(...userQuests.map((q: any) => q.currentStreak), 0);
+      const longestStreak = Math.max(...userQuests.map((q: any) => q.longestStreak), 0);
 
       // Build category stats
       const categoryStats: Record<QuestCategory, { totalXP: number; totalCompletions: number; currentStreak: number; longestStreak: number }> = {
@@ -444,7 +444,7 @@ router.get(
         });
       }
 
-      const leaderboard = users.map((user, index) => ({
+      const leaderboard = users.map((user: any, index: number) => ({
         userId: user.id,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
