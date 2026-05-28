@@ -157,9 +157,9 @@ class WatchConnectivityService {
       name: q.quest?.name || 'Quest',
       category: q.quest?.category,
       targetValue: q.quest?.targetValue || 1,
-      currentValue: q.currentValue || 0,
-      isCompleted: q.completedToday,
-      xpValue: q.quest?.xpValue || 0,
+      currentValue: (q as any).currentValue || 0,
+      isCompleted: (q as any).completedToday,
+      xpValue: q.quest?.baseXP || 0,
     }));
 
     return this.sendMessage(WatchMessageType.SYNC_QUESTS, { quests: simplifiedQuests });

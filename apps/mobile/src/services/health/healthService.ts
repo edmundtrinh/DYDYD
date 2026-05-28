@@ -373,8 +373,8 @@ class HealthService {
 
   private mapDataTypeToPermissionKey(
     dataType: HealthDataType
-  ): keyof HealthPermissionsResult | null {
-    const mapping: Record<HealthDataType, keyof HealthPermissionsResult | null> = {
+  ): Exclude<keyof HealthPermissionsResult, 'source'> | null {
+    const mapping: Record<HealthDataType, Exclude<keyof HealthPermissionsResult, 'source'> | null> = {
       steps: 'steps',
       distance: 'steps',
       active_calories: 'workout',

@@ -746,4 +746,5 @@ const styles = StyleSheet.create({
   },
 });
 
+export { QuestDetailScreen };
 export default QuestDetailScreen;
