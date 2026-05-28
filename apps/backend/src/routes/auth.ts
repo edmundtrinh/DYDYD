@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import { body } from 'express-validator';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { validate } from '../middleware/validate';
 import {
   generateAccessToken,
@@ -45,6 +46,24 @@ const refreshValidation = [
   body('refreshToken')
     .notEmpty()
     .withMessage('Refresh token is required'),
+];
+
+const forgotPasswordValidation = [
+  body('email')
+    .isEmail()
+    .withMessage('Please provide a valid email')
+    .normalizeEmail(),
+];
+
+const resetPasswordValidation = [
+  body('token')
+    .notEmpty()
+    .withMessage('Reset token is required'),
+  body('newPassword')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain uppercase, lowercase, and number'),
 ];
 
 /**
@@ -307,6 +326,133 @@ router.post(
         success: true,
         data: { message: 'Logged out successfully' },
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/auth/forgot-password
+ * Generate a password-reset token.
+ * NOTE: In production this would send an email. For now we return the token
+ * directly so front-end/tests can use it.
+ */
+router.post(
+  '/forgot-password',
+  validate(forgotPasswordValidation),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      // Always return success to avoid leaking whether the email exists
+      if (!user) {
+        return res.json({
+          success: true,
+          data: { message: 'If that email exists, a reset link has been sent.' },
+        } as ApiResponse<{ message: string }>);
+      }
+
+      // Generate a secure random token and an expiry (1 hour)
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenHash = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+      const resetExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+      // Store the hashed token on the user via Prisma's JSON-safe metadata
+      // We reuse the RefreshToken table with a special prefix to avoid a
+      // schema migration. The token column stores the hash, and we mark
+      // the purpose by prefixing.
+      await prisma.refreshToken.create({
+        data: {
+          token: `password_reset:${resetTokenHash}`,
+          userId: user.id,
+          expiresAt: resetExpiresAt,
+        },
+      });
+
+      // In production, send resetToken via email. For now, return it.
+      const response: ApiResponse<{ message: string; resetToken: string }> = {
+        success: true,
+        data: {
+          message: 'If that email exists, a reset link has been sent.',
+          resetToken, // DEV ONLY — remove when email service is wired up
+        },
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/auth/reset-password
+ * Accept a reset token and a new password, then update the user's password.
+ */
+router.post(
+  '/reset-password',
+  validate(resetPasswordValidation),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      // Hash the provided token to compare with stored hash
+      const tokenHash = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
+
+      // Look up the reset token
+      const storedToken = await prisma.refreshToken.findFirst({
+        where: {
+          token: `password_reset:${tokenHash}`,
+          expiresAt: { gt: new Date() },
+          revokedAt: null,
+        },
+      });
+
+      if (!storedToken) {
+        throw Errors.badRequest('Invalid or expired reset token');
+      }
+
+      // Hash new password and update user
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: storedToken.userId },
+          data: { password: hashedPassword },
+        }),
+        // Revoke the reset token so it cannot be reused
+        prisma.refreshToken.update({
+          where: { id: storedToken.id },
+          data: { revokedAt: new Date() },
+        }),
+        // Revoke all existing refresh tokens to force re-login
+        prisma.refreshToken.updateMany({
+          where: {
+            userId: storedToken.userId,
+            revokedAt: null,
+            token: { not: { startsWith: 'password_reset:' } },
+          },
+          data: { revokedAt: new Date() },
+        }),
+      ]);
+
+      const response: ApiResponse<{ message: string }> = {
+        success: true,
+        data: { message: 'Password has been reset successfully.' },
+      };
+
+      res.json(response);
     } catch (error) {
       next(error);
     }

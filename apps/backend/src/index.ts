@@ -11,6 +11,9 @@ import authRoutes from './routes/auth';
 import questRoutes from './routes/quests';
 import userRoutes from './routes/user';
 import progressRoutes from './routes/progress';
+import badgeRoutes from './routes/badges';
+import notificationRoutes from './routes/notifications';
+import healthRoutes from './routes/health';
 
 // Load environment variables
 dotenv.config();
@@ -59,6 +62,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/progress', progressRoutes);
+app.use('/api/badges', badgeRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/health', healthRoutes);
 
 // Error handling
 app.use(notFoundHandler);

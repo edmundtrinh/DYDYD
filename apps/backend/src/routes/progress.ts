@@ -4,6 +4,7 @@ import { validate } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
+import { calculateOverallDayStreak, calculateUserQuestStreak } from '../lib/streaks';
 import {
   ApiResponse,
   UserStats,
@@ -74,11 +75,11 @@ router.get(
         },
       });
 
-      // Calculate current streak (simplified - would need more complex logic)
-      const maxStreak = Math.max(...userQuests.map((q: any) => q.currentStreak), 0);
-      const longestStreak = Math.max(...userQuests.map((q: any) => q.longestStreak), 0);
+      // Calculate real day-over-day streak from completion data
+      const { currentDayStreak, longestDayStreak } =
+        await calculateOverallDayStreak(req.userId!);
 
-      // Build category stats
+      // Build category stats with real per-quest streak calculations
       const categoryStats: Record<QuestCategory, { totalXP: number; totalCompletions: number; currentStreak: number; longestStreak: number }> = {
         [QuestCategory.PHYSICAL_HEALTH]: { totalXP: 0, totalCompletions: 0, currentStreak: 0, longestStreak: 0 },
         [QuestCategory.MENTAL_WELLNESS]: { totalXP: 0, totalCompletions: 0, currentStreak: 0, longestStreak: 0 },
@@ -90,13 +91,17 @@ router.get(
       for (const userQuest of userQuests) {
         const category = userQuest.quest.category as QuestCategory;
         if (categoryStats[category]) {
+          const streakInfo = await calculateUserQuestStreak(
+            userQuest.id,
+            userQuest.quest.frequency
+          );
           categoryStats[category].currentStreak = Math.max(
             categoryStats[category].currentStreak,
-            userQuest.currentStreak
+            streakInfo.currentStreak
           );
           categoryStats[category].longestStreak = Math.max(
             categoryStats[category].longestStreak,
-            userQuest.longestStreak
+            streakInfo.longestStreak
           );
           categoryStats[category].totalCompletions += userQuest.totalCompletions;
         }
@@ -106,8 +111,8 @@ router.get(
         totalXP: user.totalXP,
         level: user.level,
         totalQuestsCompleted: completionStats._count,
-        currentDayStreak: maxStreak,
-        longestDayStreak: longestStreak,
+        currentDayStreak,
+        longestDayStreak,
         badgesEarned: badgeCount,
         categoryStats,
         weeklyAverage: 0, // Would calculate from historical data
