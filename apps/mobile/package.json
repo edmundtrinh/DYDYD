@@ -8,7 +8,12 @@
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "clean": "rm -rf node_modules ios/Pods android/build"
+    "clean": "rm -rf node_modules ios/Pods android/build",
+    "prebuild": "expo prebuild",
+    "eas:build:dev": "eas build --profile development --platform all",
+    "eas:build:preview": "eas build --profile preview --platform all",
+    "eas:build:ios": "eas build --profile preview --platform ios",
+    "eas:build:android": "eas build --profile preview --platform android"
   },
   "dependencies": {
     "@dydyd/shared": "workspace:*",
@@ -20,6 +25,7 @@
     "@reduxjs/toolkit": "^2.0.0",
     "axios": "^1.6.0",
     "date-fns": "^3.0.0",
+    "expo": "~50.0.0",
     "prettier": "^3.8.0",
     "react": "18.2.0",
     "react-native": "0.73.0",
