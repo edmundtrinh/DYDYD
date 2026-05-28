@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "DYDYD",
+    "slug": "dydyd",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.dydyd.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "DYDYD reads your health data to track quest progress.",
+        "NSHealthUpdateUsageDescription": "DYDYD writes workout and activity data for quest completion.",
+        "NSMotionUsageDescription": "DYDYD uses motion data for activity tracking quests."
+      }
+    },
+    "android": {
+      "package": "com.dydyd.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.BODY_SENSORS",
+        "com.google.android.gms.permission.ACTIVITY_RECOGNITION"
+      ]
+    },
+    "plugins": [
+      [
+        "react-native-health",
+        {
+          "healthSharePermission": "DYDYD reads your health data to track quest progress.",
+          "healthUpdatePermission": "DYDYD writes workout and activity data for quest completion."
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" width="320" height="96">
+  <defs>
+    
+  </defs>
+  <rect class="bg" width="320" height="96" rx="12"></rect>
+  <text class="ink" x="20" y="64">DYDYD</text>
+  <g transform="translate(258 26)">
+    <rect width="44" height="44" rx="10" fill="#1A1A2E" stroke="#2EA043" stroke-width="2"></rect>
+    <path class="tick" d="M11 22 L19 30 L33 14" stroke="#2EA043" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+  </g>
+  <circle class="gold" cx="294" cy="20" r="4"></circle>
+</svg>
