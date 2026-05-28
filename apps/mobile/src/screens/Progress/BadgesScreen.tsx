@@ -1,55 +1,173 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { PREDEFINED_BADGES } from '@dydyd/shared';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Badge as BadgeComponent } from '../../components/Badge';
 
-const RARITY_COLORS: Record<string, string> = {
-  common: '#9CA3AF',
-  uncommon: '#2EA043',
-  rare: '#2563EB',
-  epic: '#7C3AED',
-  legendary: '#F5B400',
-  mythic: '#DC2626',
+type BadgeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
+
+// Placeholder earned badges -- will be wired to Redux
+const EARNED_BADGE_NAMES = new Set(['First Steps', 'Week Warrior']);
+
+// Group badges by rarity for display
+const RARITY_ORDER: BadgeRarity[] = ['legendary', 'epic', 'rare', 'common'];
+const RARITY_LABELS: Record<string, string> = {
+  legendary: 'Legendary',
+  epic: 'Epic',
+  rare: 'Rare',
+  common: 'Common',
 };
 
 export const BadgesScreen: React.FC = () => {
-  // TODO: Wire to progressSlice badges data
+  const { colors, typography, spacing, radii } = useTheme();
 
-  const sampleBadges = [
-    { id: '1', name: 'First Steps', description: 'Complete your first quest', rarity: 'common', earned: false },
-    { id: '2', name: 'Streak Starter', description: 'Maintain a 3-day streak', rarity: 'common', earned: false },
-    { id: '3', name: 'Week Warrior', description: 'Maintain a 7-day streak', rarity: 'uncommon', earned: false },
-    { id: '4', name: 'Century Club', description: 'Complete 100 quests', rarity: 'rare', earned: false },
-    { id: '5', name: 'Category Master', description: 'Max a single category', rarity: 'epic', earned: false },
-    { id: '6', name: 'Completionist', description: 'Complete all daily quests for 30 days', rarity: 'legendary', earned: false },
-  ];
+  const earnedCount = PREDEFINED_BADGES.filter((b) =>
+    EARNED_BADGE_NAMES.has(b.name),
+  ).length;
+
+  // Group badges by rarity
+  const grouped = RARITY_ORDER.map((rarity) => ({
+    rarity,
+    badges: PREDEFINED_BADGES.filter((b) => b.rarity === rarity),
+  })).filter((g) => g.badges.length > 0);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.earned}>0 / {sampleBadges.length} earned</Text>
-      <View style={styles.grid}>
-        {sampleBadges.map(badge => (
-          <View key={badge.id} style={[styles.card, !badge.earned && styles.cardLocked]}>
-            <Text style={styles.badgeIcon}>🏅</Text>
-            <Text style={styles.badgeName}>{badge.name}</Text>
-            <Text style={[styles.rarity, { color: RARITY_COLORS[badge.rarity] }]}>
-              {badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}
-            </Text>
-            <Text style={styles.badgeDesc}>{badge.description}</Text>
-          </View>
-        ))}
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={[styles.content, { gap: spacing.xl }]}
+    >
+      {/* Header summary */}
+      <View style={styles.headerRow}>
+        <View
+          style={[
+            styles.earnedPill,
+            {
+              backgroundColor: colors.surface1,
+              borderColor: colors.border,
+              borderRadius: radii.pill,
+              paddingHorizontal: spacing.base,
+              paddingVertical: spacing.sm,
+            },
+          ]}
+        >
+          <Text
+            style={{
+              color: colors.xp,
+              fontSize: typography.sizeBody,
+              fontWeight: typography.weightHeavy,
+            }}
+          >
+            {earnedCount}
+          </Text>
+          <Text
+            style={{
+              color: colors.textTertiary,
+              fontSize: typography.sizeBodySm,
+              marginLeft: spacing.xs,
+            }}
+          >
+            / {PREDEFINED_BADGES.length} earned
+          </Text>
+        </View>
       </View>
+
+      {/* Badge groups by rarity */}
+      {grouped.map((group) => {
+        const rarityColorMap: Record<string, string> = {
+          common: colors.rarityCommon,
+          uncommon: colors.rarityUncommon,
+          rare: colors.rarityRare,
+          epic: colors.rarityEpic,
+          legendary: colors.rarityLegendary,
+          mythic: colors.rarityMythic,
+        };
+        const sectionColor = rarityColorMap[group.rarity] || colors.textTertiary;
+
+        return (
+          <View key={group.rarity}>
+            {/* Section header */}
+            <View style={[styles.sectionHeader, { marginBottom: spacing.md }]}>
+              <View
+                style={[
+                  styles.sectionDot,
+                  {
+                    backgroundColor: sectionColor,
+                    borderRadius: radii.pill,
+                  },
+                ]}
+              />
+              <Text
+                style={{
+                  color: sectionColor,
+                  fontSize: typography.sizeMicro,
+                  fontWeight: typography.weightBold,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1.2,
+                }}
+              >
+                {RARITY_LABELS[group.rarity] || group.rarity}
+              </Text>
+              <Text
+                style={{
+                  color: colors.textDisabled,
+                  fontSize: typography.sizeMicro,
+                  marginLeft: spacing.xs,
+                }}
+              >
+                ({group.badges.length})
+              </Text>
+            </View>
+
+            {/* Badge grid */}
+            <View style={[styles.grid, { gap: spacing.sm }]}>
+              {group.badges.map((badge) => {
+                const isEarned = EARNED_BADGE_NAMES.has(badge.name);
+                return (
+                  <BadgeComponent
+                    key={badge.name}
+                    name={badge.name}
+                    iconName={badge.iconName}
+                    rarity={badge.rarity as BadgeRarity}
+                    locked={!isEarned}
+                    earnedDate={isEarned ? 'Earned' : undefined}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        );
+      })}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F1A' },
-  content: { padding: 20, gap: 20 },
-  earned: { fontSize: 14, color: '#888899', textAlign: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { width: '47%', backgroundColor: '#1A1A2E', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#2A2A3E', gap: 6 },
-  cardLocked: { opacity: 0.5 },
-  badgeIcon: { fontSize: 32 },
-  badgeName: { fontSize: 14, fontWeight: '700', color: '#FFFFFF', textAlign: 'center' },
-  rarity: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-  badgeDesc: { fontSize: 12, color: '#888899', textAlign: 'center' },
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  headerRow: {
+    alignItems: 'center',
+  },
+  earnedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
 });

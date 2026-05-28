@@ -1,81 +1,323 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  SectionList,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { OnboardingStackParamList } from '../../navigation/OnboardingNavigator';
+import {
+  PREDEFINED_QUESTS,
+  CATEGORY_METADATA,
+  QuestCategory,
+} from '@dydyd/shared';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Button } from '../../components/Button';
+import { CategoryIcon, getCategoryColor } from '../../components/CategoryIcon';
 
 type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'SelectQuests'>;
 
+type QuestItem = (typeof PREDEFINED_QUESTS)[number];
+
+interface SectionData {
+  title: string;
+  category: QuestCategory;
+  data: QuestItem[];
+}
+
 export const SelectQuestsScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const [selected, setSelected] = useState<string[]>([]);
+  const { colors, typography, spacing, radii } = useTheme();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [activeFilter, setActiveFilter] = useState<QuestCategory | 'all'>('all');
 
-  const toggle = (id: string) => {
-    setSelected(prev => prev.includes(id) ? prev.filter(q => q !== id) : [...prev, id]);
+  const toggle = (name: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
   };
 
-  // TODO: Load from PREDEFINED_QUESTS via @dydyd/shared
-  const sampleQuests = [
-    { id: '1', emoji: '🚶', name: 'Walk 10,000 steps', category: 'Physical Health' },
-    { id: '2', emoji: '💧', name: 'Drink 8 glasses of water', category: 'Physical Health' },
-    { id: '3', emoji: '🧘', name: 'Meditate for 10 minutes', category: 'Mental Wellness' },
-    { id: '4', emoji: '📖', name: 'Read for 20 minutes', category: 'Mental Wellness' },
-    { id: '5', emoji: '📝', name: 'Journal for 5 minutes', category: 'Mental Wellness' },
-    { id: '6', emoji: '🛏️', name: 'Make your bed', category: 'Home & Chores' },
-    { id: '7', emoji: '📞', name: 'Call a friend or family member', category: 'Relationships & Social' },
-    { id: '8', emoji: '📚', name: 'Learn something new for 15 min', category: 'Career & Productivity' },
+  const sections: SectionData[] = useMemo(() => {
+    const categories = Object.values(QuestCategory);
+    return categories
+      .map((cat) => ({
+        title: CATEGORY_METADATA[cat].name,
+        category: cat,
+        data:
+          activeFilter === 'all' || activeFilter === cat
+            ? PREDEFINED_QUESTS.filter((q) => q.category === cat)
+            : [],
+      }))
+      .filter((s) => s.data.length > 0);
+  }, [activeFilter]);
+
+  const filterTabs: Array<{ id: QuestCategory | 'all'; label: string; color?: string }> = [
+    { id: 'all', label: 'All' },
+    ...Object.values(QuestCategory).map((cat) => ({
+      id: cat,
+      label: CATEGORY_METADATA[cat].name.split(' ')[0],
+      color: CATEGORY_METADATA[cat].color,
+    })),
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.step}>Step 2 of 5</Text>
-        <Text style={styles.title}>Choose your first quests</Text>
-        <Text style={styles.subtitle}>Select at least 3 quests to get started. You can always change these later.</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { marginTop: spacing['5xl'] }]}>
+        <Text
+          style={[
+            styles.step,
+            {
+              color: colors.textTertiary,
+              fontSize: typography.sizeMicro,
+              fontWeight: typography.weightBold,
+            },
+          ]}
+        >
+          STEP 2 OF 5
+        </Text>
+        <Text
+          style={{
+            fontSize: typography.sizeH2,
+            fontWeight: typography.weightHeavy,
+            color: colors.text,
+            marginTop: spacing.sm,
+            letterSpacing: -0.4,
+          }}
+        >
+          Choose your first quests
+        </Text>
+        <Text
+          style={{
+            fontSize: typography.sizeBodySm,
+            color: colors.textTertiary,
+            marginTop: spacing.sm,
+            lineHeight: 22,
+          }}
+        >
+          Select at least 3 quests to get started. You can always add more later.
+        </Text>
       </View>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {sampleQuests.map(q => (
-          <TouchableOpacity
-            key={q.id}
-            style={[styles.card, selected.includes(q.id) && styles.cardSelected]}
-            onPress={() => toggle(q.id)}
-          >
-            <Text style={styles.emoji}>{q.emoji}</Text>
-            <View style={styles.cardText}>
-              <Text style={styles.questName}>{q.name}</Text>
-              <Text style={styles.questCategory}>{q.category}</Text>
-            </View>
-            {selected.includes(q.id) && <Text style={styles.check}>✓</Text>}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <TouchableOpacity
-        style={[styles.button, selected.length < 3 && styles.buttonDisabled]}
-        onPress={() => navigation.navigate('HealthPermissions')}
-        disabled={selected.length < 3}
+
+      {/* Category filter tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[styles.filterScroll, { marginTop: spacing.base }]}
+        contentContainerStyle={{ gap: spacing.sm, paddingVertical: 4 }}
       >
-        <Text style={styles.buttonText}>{selected.length} selected — Continue</Text>
-      </TouchableOpacity>
+        {filterTabs.map((tab) => {
+          const isActive = activeFilter === tab.id;
+          const tabColor = tab.color || colors.primary;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              onPress={() => setActiveFilter(tab.id)}
+              style={[
+                styles.filterTab,
+                {
+                  backgroundColor: isActive ? tabColor + '30' : colors.surface1,
+                  borderColor: isActive ? tabColor : colors.border,
+                  borderRadius: radii.pill,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: isActive ? tabColor : colors.textTertiary,
+                  fontSize: typography.sizeCaption,
+                  fontWeight: typography.weightSemi,
+                }}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Quest list */}
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.name}
+        style={styles.list}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => (
+          <View style={[styles.sectionHeader, { marginTop: spacing.base }]}>
+            <View
+              style={[
+                styles.sectionDot,
+                {
+                  backgroundColor: getCategoryColor(section.category, colors),
+                  borderRadius: radii.pill,
+                },
+              ]}
+            />
+            <Text
+              style={{
+                color: colors.textSecondary,
+                fontSize: typography.sizeCaption,
+                fontWeight: typography.weightBold,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}
+            >
+              {section.title}
+            </Text>
+          </View>
+        )}
+        renderItem={({ item }) => {
+          const isSelected = selected.has(item.name);
+          const catColor = getCategoryColor(item.category, colors);
+
+          return (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => toggle(item.name)}
+              style={[
+                styles.questCard,
+                {
+                  backgroundColor: isSelected
+                    ? catColor + '15'
+                    : colors.surface1,
+                  borderColor: isSelected ? catColor : colors.border,
+                  borderRadius: radii.md,
+                  padding: spacing.md,
+                  marginTop: spacing.sm,
+                },
+              ]}
+            >
+              <CategoryIcon category={item.category} size={40} />
+              <View style={styles.questContent}>
+                <Text
+                  style={{
+                    fontSize: typography.sizeBodySm,
+                    fontWeight: typography.weightSemi,
+                    color: colors.text,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: typography.sizeMicro,
+                    color: colors.textTertiary,
+                    marginTop: 2,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.frequency} {'·'} +{item.baseXP} XP
+                  {item.targetValue
+                    ? ` · ${item.targetValue} ${item.unit || ''}`
+                    : ''}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    backgroundColor: isSelected ? catColor : 'transparent',
+                    borderColor: isSelected ? catColor : colors.borderStrong,
+                    borderRadius: radii.xs,
+                  },
+                ]}
+              >
+                {isSelected && <Text style={styles.checkText}>{'✓'}</Text>}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      {/* Continue button */}
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.base,
+          },
+        ]}
+      >
+        <Button
+          title={`${selected.size} selected — Continue`}
+          onPress={() => navigation.navigate('HealthPermissions')}
+          disabled={selected.size < 3}
+          fullWidth
+        />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F1A', padding: 20 },
-  header: { marginTop: 60, marginBottom: 24 },
-  step: { fontSize: 12, fontWeight: '700', color: '#888899', textTransform: 'uppercase', letterSpacing: 1.5 },
-  title: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginTop: 8 },
-  subtitle: { fontSize: 16, color: '#888899', marginTop: 8, lineHeight: 24 },
-  scroll: { flex: 1 },
-  scrollContent: { gap: 10, paddingBottom: 20 },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A2E', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#2A2A3E', gap: 12 },
-  cardSelected: { borderColor: '#2EA043' },
-  emoji: { fontSize: 24 },
-  cardText: { flex: 1 },
-  questName: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  questCategory: { fontSize: 13, color: '#888899', marginTop: 2 },
-  check: { fontSize: 18, color: '#2EA043', fontWeight: '700' },
-  button: { backgroundColor: '#2EA043', borderRadius: 9999, paddingVertical: 16, alignItems: 'center', marginBottom: 40, marginTop: 16 },
-  buttonDisabled: { opacity: 0.4 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  header: {},
+  step: {
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  filterScroll: {
+    flexGrow: 0,
+  },
+  filterTab: {
+    borderWidth: 1,
+  },
+  list: {
+    flex: 1,
+    marginTop: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+  },
+  questCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    gap: 12,
+  },
+  questContent: {
+    flex: 1,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  footer: {
+    borderTopWidth: 1,
+    paddingBottom: 40,
+  },
 });

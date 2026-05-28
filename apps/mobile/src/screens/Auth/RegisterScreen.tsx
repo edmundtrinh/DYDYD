@@ -1,95 +1,268 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
-import { useAppDispatch } from '../../store/hooks';
-import { register } from '../../store/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { register, selectAuthLoading, selectAuthError, clearError } from '../../store/slices/authSlice';
+import { isValidEmail } from '@dydyd/shared';
+import { useTheme } from '../../theme/ThemeProvider';
+import { Input } from '../../components/Input';
+import { Button } from '../../components/Button';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+
+const getPasswordStrength = (pw: string): { label: string; color: string; score: number } => {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^a-zA-Z\d]/.test(pw)) score++;
+
+  if (score <= 1) return { label: 'Weak', color: '#DC2626', score };
+  if (score <= 2) return { label: 'Fair', color: '#EA580C', score };
+  if (score <= 3) return { label: 'Good', color: '#F5B400', score };
+  return { label: 'Strong', color: '#2EA043', score };
+};
 
 export const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
+  const loading = useAppSelector(selectAuthLoading);
+  const serverError = useAppSelector(selectAuthError);
+  const { colors, typography, spacing, radii } = useTheme();
+
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmError, setConfirmError] = useState('');
+
+  const pwStrength = useMemo(() => getPasswordStrength(password), [password]);
+
+  const validate = (): boolean => {
+    let valid = true;
+    setNameError('');
+    setEmailError('');
+    setPasswordError('');
+    setConfirmError('');
+    dispatch(clearError());
+
+    if (!displayName.trim()) {
+      setNameError('Display name is required');
+      valid = false;
+    } else if (displayName.trim().length < 2) {
+      setNameError('Name must be at least 2 characters');
+      valid = false;
+    }
+
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      valid = false;
+    } else if (!isValidEmail(email)) {
+      setEmailError('Enter a valid email address');
+      valid = false;
+    }
+
+    if (!password) {
+      setPasswordError('Password is required');
+      valid = false;
+    } else if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      valid = false;
+    }
+
+    if (!confirmPassword) {
+      setConfirmError('Please confirm your password');
+      valid = false;
+    } else if (password !== confirmPassword) {
+      setConfirmError('Passwords do not match');
+      valid = false;
+    }
+
+    return valid;
+  };
 
   const handleRegister = async () => {
-    if (!displayName || !email || !password) {
-      Alert.alert('Missing fields', 'Please fill in all fields.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('Password mismatch', 'Passwords do not match.');
-      return;
-    }
-    if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
-      return;
-    }
-    setLoading(true);
+    if (!validate()) return;
     try {
-      await dispatch(register({ email, password, displayName })).unwrap();
-    } catch (err: any) {
-      Alert.alert('Registration failed', err?.message || 'Please try again.');
-    } finally {
-      setLoading(false);
+      await dispatch(
+        register({ email: email.trim(), password, displayName: displayName.trim() }),
+      ).unwrap();
+    } catch {
+      // Error is handled by Redux slice
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={styles.title}>Create your account</Text>
-          <Text style={styles.subtitle}>Begin your adventure</Text>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={{ marginBottom: spacing['2xl'] }}>
+          <Text
+            style={{
+              fontSize: typography.sizeH1,
+              fontWeight: typography.weightBold,
+              color: colors.text,
+            }}
+          >
+            Create your account
+          </Text>
+          <Text
+            style={{
+              fontSize: typography.sizeBody,
+              color: colors.textTertiary,
+              marginTop: spacing.sm,
+            }}
+          >
+            Begin your adventure
+          </Text>
         </View>
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Display name"
-            placeholderTextColor="#5A5A6E"
+
+        {/* Server error banner */}
+        {serverError && (
+          <View
+            style={[
+              styles.errorBanner,
+              {
+                backgroundColor: colors.redDim + '44',
+                borderColor: colors.red,
+                borderRadius: radii.sm,
+                padding: spacing.md,
+                marginBottom: spacing.base,
+              },
+            ]}
+          >
+            <Text style={{ color: colors.redBright, fontSize: typography.sizeBodySm }}>
+              {serverError}
+            </Text>
+          </View>
+        )}
+
+        <View style={{ gap: spacing.base }}>
+          <Input
+            label="Display Name"
+            placeholder="What should we call you?"
             value={displayName}
-            onChangeText={setDisplayName}
+            onChangeText={(text) => {
+              setDisplayName(text);
+              if (nameError) setNameError('');
+            }}
+            error={nameError}
             textContentType="name"
+            autoComplete="name"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#5A5A6E"
+
+          <Input
+            label="Email"
+            placeholder="you@example.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (emailError) setEmailError('');
+            }}
+            error={emailError}
             autoCapitalize="none"
             keyboardType="email-address"
             textContentType="emailAddress"
+            autoComplete="email"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#5A5A6E"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            textContentType="newPassword"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm password"
-            placeholderTextColor="#5A5A6E"
+
+          <View>
+            <Input
+              label="Password"
+              placeholder="At least 8 characters"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordError) setPasswordError('');
+              }}
+              error={passwordError}
+              secureTextEntry
+              textContentType="newPassword"
+            />
+            {/* Password strength indicator */}
+            {password.length > 0 && (
+              <View style={[styles.strengthRow, { marginTop: spacing.sm }]}>
+                <View style={styles.strengthBars}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.strengthBar,
+                        {
+                          backgroundColor:
+                            pwStrength.score >= i ? pwStrength.color : colors.surface3,
+                          borderRadius: 2,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text
+                  style={{
+                    color: pwStrength.color,
+                    fontSize: typography.sizeMicro,
+                    fontWeight: typography.weightSemi,
+                    marginLeft: spacing.sm,
+                  }}
+                >
+                  {pwStrength.label}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Input
+            label="Confirm Password"
+            placeholder="Re-enter your password"
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (confirmError) setConfirmError('');
+            }}
+            error={confirmError}
             secureTextEntry
             textContentType="newPassword"
           />
-          <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
-            <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Create Account'}</Text>
-          </TouchableOpacity>
+
+          <Button
+            title="Create Account"
+            onPress={handleRegister}
+            loading={loading}
+            fullWidth
+            style={{ marginTop: spacing.sm }}
+          />
         </View>
-        <TouchableOpacity style={styles.footer} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.footerText}>Already have an account? <Text style={styles.footerLink}>Log in</Text></Text>
+
+        <TouchableOpacity
+          style={[styles.footer, { marginTop: spacing['2xl'] }]}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={{ color: colors.textTertiary, fontSize: typography.sizeBodySm }}>
+            {'Already have an account? '}
+            <Text style={{ color: colors.primary, fontWeight: typography.weightSemi }}>
+              Log in
+            </Text>
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -97,17 +270,32 @@ export const RegisterScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F1A' },
-  scroll: { padding: 20, justifyContent: 'center', flexGrow: 1 },
-  header: { marginBottom: 32 },
-  title: { fontSize: 32, fontWeight: '700', color: '#FFFFFF' },
-  subtitle: { fontSize: 16, color: '#888899', marginTop: 8 },
-  form: { gap: 16 },
-  input: { backgroundColor: '#1A1A2E', borderRadius: 12, padding: 16, fontSize: 16, color: '#FFFFFF', borderWidth: 1, borderColor: '#2A2A3E' },
-  button: { backgroundColor: '#2EA043', borderRadius: 9999, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  footer: { marginTop: 32, alignItems: 'center', paddingBottom: 40 },
-  footerText: { color: '#888899', fontSize: 14 },
-  footerLink: { color: '#2EA043', fontWeight: '600' },
+  container: {
+    flex: 1,
+  },
+  scroll: {
+    padding: 20,
+    justifyContent: 'center',
+    flexGrow: 1,
+  },
+  errorBanner: {
+    borderWidth: 1,
+  },
+  strengthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  strengthBars: {
+    flexDirection: 'row',
+    gap: 4,
+    flex: 1,
+  },
+  strengthBar: {
+    flex: 1,
+    height: 4,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
 });
