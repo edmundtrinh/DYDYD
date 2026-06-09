@@ -3,13 +3,28 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 're
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/MainTabNavigator';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { selectUserSettings, updateSettings } from '../../store/slices/userSlice';
+import { selectTheme, setTheme } from '../../store/slices/uiSlice';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Settings'>;
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const dispatch = useAppDispatch();
+  const settings = useAppSelector(selectUserSettings);
+  const theme = useAppSelector(selectTheme);
 
-  // TODO: Wire to userSlice settings
+  const isDarkMode = theme === 'dark' || theme === 'system';
+  const hapticEnabled = settings?.hapticFeedbackEnabled ?? true;
+
+  const handleDarkModeToggle = (value: boolean) => {
+    dispatch(setTheme(value ? 'dark' : 'light'));
+  };
+
+  const handleHapticToggle = (value: boolean) => {
+    dispatch(updateSettings({ hapticFeedbackEnabled: value }));
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -17,11 +32,21 @@ export const SettingsScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>Preferences</Text>
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Dark Mode</Text>
-          <Switch value={true} disabled />
+          <Switch
+            value={isDarkMode}
+            onValueChange={handleDarkModeToggle}
+            trackColor={{ false: '#3A3A55', true: '#2EA043' }}
+            thumbColor="#FFFFFF"
+          />
         </View>
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Haptic Feedback</Text>
-          <Switch value={true} disabled />
+          <Switch
+            value={hapticEnabled}
+            onValueChange={handleHapticToggle}
+            trackColor={{ false: '#3A3A55', true: '#2EA043' }}
+            thumbColor="#FFFFFF"
+          />
         </View>
       </View>
 
@@ -29,11 +54,11 @@ export const SettingsScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>Integrations</Text>
         <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('Notifications')}>
           <Text style={styles.rowLabel}>Notifications</Text>
-          <Text style={styles.rowChevron}>›</Text>
+          <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('HealthIntegrations')}>
           <Text style={styles.rowLabel}>Health Integrations</Text>
-          <Text style={styles.rowChevron}>›</Text>
+          <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -41,11 +66,11 @@ export const SettingsScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>Account</Text>
         <TouchableOpacity style={styles.row}>
           <Text style={styles.rowLabel}>Export Data</Text>
-          <Text style={styles.rowChevron}>›</Text>
+          <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.row}>
           <Text style={[styles.rowLabel, { color: '#DC2626' }]}>Delete Account</Text>
-          <Text style={styles.rowChevron}>›</Text>
+          <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
       </View>
 
