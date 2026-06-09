@@ -56,15 +56,15 @@ describe('HealthService', () => {
 
       const dataPoints = [
         {
-          type: 'steps' as const,
+          type: 'steps',
           value: 10000,
           unit: 'steps',
-          source: 'apple_health' as const,
+          source: 'apple_health',
           timestamp: new Date(),
           startDate: new Date(),
           endDate: new Date(),
         },
-      ];
+      ] as any;
 
       const result = await healthService.syncToBackend(dataPoints);
 
