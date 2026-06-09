@@ -52,4 +52,8 @@ export const progressService = {
   async getStreaks(): Promise<Array<{ questId: string; streak: number }>> {
     return apiClient.get('/progress/streaks');
   },
+
+  async checkBadges(): Promise<UserBadge[]> {
+    return apiClient.post<UserBadge[]>('/badges/check');
+  },
 };

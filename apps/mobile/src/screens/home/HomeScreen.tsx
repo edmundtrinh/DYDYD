@@ -27,7 +27,7 @@ import Animated, {
 
 import { AppDispatch, RootState } from '../../store';
 import { fetchUserQuests, completeQuest, selectDailyQuests, selectCompletedQuestIds } from '../../store/slices/questsSlice';
-import { fetchUserStats, selectUserStats } from '../../store/slices/progressSlice';
+import { fetchUserStats, selectUserStats, checkBadges } from '../../store/slices/progressSlice';
 import { selectProfile, selectCategoryPriorities } from '../../store/slices/userSlice';
 import { syncHealthData, selectTodayHealthData } from '../../store/slices/healthSlice';
 import { CATEGORY_METADATA, calculateLevelProgress, HealthDataSource, QuestCategory } from '@dydyd/shared';
@@ -242,13 +242,18 @@ export const HomeScreen: React.FC = () => {
   }, [dispatch]);
   
   // Complete quest handler
-  const handleCompleteQuest = useCallback((questId: string) => {
+  const handleCompleteQuest = useCallback(async (questId: string) => {
     haptic('notificationSuccess');
     const quest = todayQuests.find((q: any) => q.id === questId);
     const xp = quest?.quest?.baseXP ?? 5;
     const name = quest?.quest?.name ?? 'Quest';
-    dispatch(completeQuest({ userQuestId: questId, value: 1, source: HealthDataSource.MANUAL }));
-    setCompletionOverlay({ visible: true, xpEarned: xp, questName: name });
+    try {
+      await dispatch(completeQuest({ userQuestId: questId, value: 1, source: HealthDataSource.MANUAL })).unwrap();
+      setCompletionOverlay({ visible: true, xpEarned: xp, questName: name });
+      dispatch(checkBadges());
+    } catch {
+      // Quest completion failed — don't show overlay
+    }
   }, [dispatch, haptic, todayQuests]);
   
   // Sort quests by priority
