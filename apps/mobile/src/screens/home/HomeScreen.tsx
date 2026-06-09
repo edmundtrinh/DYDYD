@@ -33,6 +33,7 @@ import { syncHealthData, selectTodayHealthData } from '../../store/slices/health
 import { CATEGORY_METADATA, calculateLevelProgress, HealthDataSource, QuestCategory } from '@dydyd/shared';
 import { wearablesManager } from '../../services/wearables';
 import { QuestCompletionOverlay } from '../../components/QuestCompletionOverlay';
+import { LevelUpOverlay } from '../../components/LevelUpOverlay';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -178,6 +179,10 @@ export const HomeScreen: React.FC = () => {
     xpEarned: number;
     questName: string;
   }>({ visible: false, xpEarned: 0, questName: '' });
+  const [levelUpOverlay, setLevelUpOverlay] = useState<{
+    visible: boolean;
+    newLevel: number;
+  }>({ visible: false, newLevel: 0 });
   
   const user = useSelector(selectProfile);
   const stats = useSelector(selectUserStats);
@@ -248,9 +253,14 @@ export const HomeScreen: React.FC = () => {
     const xp = quest?.quest?.baseXP ?? 5;
     const name = quest?.quest?.name ?? 'Quest';
     try {
-      await dispatch(completeQuest({ userQuestId: questId, value: 1, source: HealthDataSource.MANUAL })).unwrap();
+      const result = await dispatch(completeQuest({ userQuestId: questId, value: 1, source: HealthDataSource.MANUAL })).unwrap();
       setCompletionOverlay({ visible: true, xpEarned: xp, questName: name });
       dispatch(checkBadges());
+      if (result.newLevel) {
+        setTimeout(() => {
+          setLevelUpOverlay({ visible: true, newLevel: result.newLevel! });
+        }, 2200);
+      }
     } catch {
       // Quest completion failed — don't show overlay
     }
@@ -278,6 +288,11 @@ export const HomeScreen: React.FC = () => {
         xpEarned={completionOverlay.xpEarned}
         questName={completionOverlay.questName}
         onDismiss={() => setCompletionOverlay({ visible: false, xpEarned: 0, questName: '' })}
+      />
+      <LevelUpOverlay
+        visible={levelUpOverlay.visible}
+        newLevel={levelUpOverlay.newLevel}
+        onDismiss={() => setLevelUpOverlay({ visible: false, newLevel: 0 })}
       />
       <ScrollView
         style={styles.scrollView}
