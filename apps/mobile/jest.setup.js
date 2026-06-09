@@ -73,6 +73,12 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
 }), { virtual: true });
 
+// Mock expo-font
+jest.mock('expo-font', () => ({
+  loadAsync: jest.fn().mockResolvedValue(undefined),
+  isLoaded: jest.fn().mockReturnValue(true),
+}), { virtual: true });
+
 // Mock navigation
 jest.mock('@react-navigation/native', () => {
   const actualNav = jest.requireActual('@react-navigation/native');
