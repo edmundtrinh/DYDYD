@@ -17,6 +17,7 @@ import { XPBar } from '../../components/XPBar';
 import { StatCard } from '../../components/StatCard';
 import { Card } from '../../components/Card';
 import { CategoryIcon, getCategoryColor } from '../../components/CategoryIcon';
+import { StreakCalendar } from '../../components/StreakCalendar';
 
 type Nav = NativeStackNavigationProp<ProgressStackParamList, 'ProgressMain'>;
 
@@ -33,7 +34,7 @@ export const ProgressScreen: React.FC = () => {
 
   useEffect(() => {
     dispatch(fetchUserStats());
-    dispatch(fetchDailyProgress(7));
+    dispatch(fetchDailyProgress(28));
   }, [dispatch]);
 
   const levelProgress = useMemo(
@@ -218,6 +219,11 @@ export const ProgressScreen: React.FC = () => {
             {weeklyTotal} XP
           </Text>
         </View>
+      </Card>
+
+      {/* Streak Calendar */}
+      <Card header="Activity">
+        <StreakCalendar dailyProgress={dailyProgress} days={28} />
       </Card>
 
       {/* Category breakdown */}
