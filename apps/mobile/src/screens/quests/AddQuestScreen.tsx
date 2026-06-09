@@ -1,25 +1,35 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { QuestCategory, QuestFrequency } from '@dydyd/shared';
+import { useAppDispatch } from '../../store/hooks';
+import { createCustomQuest } from '../../store/slices/questsSlice';
+import { showToast } from '../../store/slices/uiSlice';
 
 const CATEGORIES = [
-  { id: 'PHYSICAL_HEALTH', label: 'Physical Health', emoji: '💪', color: '#2EA043' },
-  { id: 'MENTAL_WELLNESS', label: 'Mental Wellness', emoji: '🧠', color: '#7C3AED' },
-  { id: 'CAREER_PRODUCTIVITY', label: 'Career & Productivity', emoji: '💼', color: '#2563EB' },
-  { id: 'RELATIONSHIPS_SOCIAL', label: 'Relationships & Social', emoji: '❤️', color: '#DC2626' },
-  { id: 'HOME_CHORES', label: 'Home & Chores', emoji: '🏠', color: '#EA580C' },
+  { id: QuestCategory.PHYSICAL_HEALTH, label: 'Physical Health', emoji: '\u{1F4AA}', color: '#2EA043' },
+  { id: QuestCategory.MENTAL_WELLNESS, label: 'Mental Wellness', emoji: '\u{1F9E0}', color: '#7C3AED' },
+  { id: QuestCategory.CAREER_PRODUCTIVITY, label: 'Career & Productivity', emoji: '\u{1F4BC}', color: '#2563EB' },
+  { id: QuestCategory.RELATIONSHIPS_SOCIAL, label: 'Relationships & Social', emoji: '\u{2764}\u{FE0F}', color: '#DC2626' },
+  { id: QuestCategory.HOME_CHORES, label: 'Home & Chores', emoji: '\u{1F3E0}', color: '#EA580C' },
 ];
 
-const FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
+const FREQUENCIES: { value: QuestFrequency; label: string }[] = [
+  { value: QuestFrequency.DAILY, label: 'Daily' },
+  { value: QuestFrequency.WEEKLY, label: 'Weekly' },
+  { value: QuestFrequency.MONTHLY, label: 'Monthly' },
+];
 
 export const AddQuestScreen: React.FC = () => {
   const navigation = useNavigation();
+  const dispatch = useAppDispatch();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [frequency, setFrequency] = useState<typeof FREQUENCIES[number]>('daily');
+  const [category, setCategory] = useState<QuestCategory | ''>('');
+  const [frequency, setFrequency] = useState<QuestFrequency>(QuestFrequency.DAILY);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!name.trim()) {
       Alert.alert('Quest needs a name', 'Every quest needs a title, Adventurer.');
       return;
@@ -28,8 +38,40 @@ export const AddQuestScreen: React.FC = () => {
       Alert.alert('Choose a category', 'Select which life area this quest belongs to.');
       return;
     }
-    // TODO: Dispatch createCustomQuest action
-    navigation.goBack();
+
+    setIsSubmitting(true);
+    try {
+      await dispatch(
+        createCustomQuest({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          category,
+          frequency,
+          baseXP: 5,
+          maxCompletionsPerPeriod: 1,
+          iconName: 'star',
+        }),
+      ).unwrap();
+
+      dispatch(
+        showToast({
+          type: 'success',
+          title: 'Quest created!',
+          message: `"${name.trim()}" has been added to your quests.`,
+        }),
+      );
+      navigation.goBack();
+    } catch (error: any) {
+      dispatch(
+        showToast({
+          type: 'error',
+          title: 'Failed to create quest',
+          message: error || 'Something went wrong. Please try again.',
+        }),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -68,6 +110,8 @@ export const AddQuestScreen: React.FC = () => {
               key={cat.id}
               style={[styles.chip, category === cat.id && { borderColor: cat.color, backgroundColor: cat.color + '20' }]}
               onPress={() => setCategory(cat.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: category === cat.id }}
             >
               <Text style={styles.chipEmoji}>{cat.emoji}</Text>
               <Text style={[styles.chipLabel, category === cat.id && { color: cat.color }]}>{cat.label}</Text>
@@ -81,20 +125,28 @@ export const AddQuestScreen: React.FC = () => {
         <View style={styles.freqRow}>
           {FREQUENCIES.map(f => (
             <TouchableOpacity
-              key={f}
-              style={[styles.freqChip, frequency === f && styles.freqChipActive]}
-              onPress={() => setFrequency(f)}
+              key={f.value}
+              style={[styles.freqChip, frequency === f.value && styles.freqChipActive]}
+              onPress={() => setFrequency(f.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: frequency === f.value }}
             >
-              <Text style={[styles.freqText, frequency === f && styles.freqTextActive]}>
-                {f.charAt(0).toUpperCase() + f.slice(1)}
+              <Text style={[styles.freqText, frequency === f.value && styles.freqTextActive]}>
+                {f.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-        <Text style={styles.createButtonText}>Create Quest</Text>
+      <TouchableOpacity
+        style={[styles.createButton, isSubmitting && styles.createButtonDisabled]}
+        onPress={handleCreate}
+        disabled={isSubmitting}
+      >
+        <Text style={styles.createButtonText}>
+          {isSubmitting ? 'Creating...' : 'Create Quest'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -117,5 +169,6 @@ const styles = StyleSheet.create({
   freqText: { fontSize: 14, fontWeight: '600', color: '#888899' },
   freqTextActive: { color: '#2EA043' },
   createButton: { backgroundColor: '#2EA043', borderRadius: 9999, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  createButtonDisabled: { opacity: 0.6 },
   createButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });
