@@ -23,7 +23,7 @@ export async function calculateUserQuestStreak(
     orderBy: { completedAt: 'desc' },
   });
 
-  const completionDates = completions.map((c) => c.completedAt);
+  const completionDates = completions.map((c: { completedAt: Date }) => c.completedAt);
   const freq = frequency as QuestFrequency;
 
   const currentStreak = calculateStreak(completionDates, freq);

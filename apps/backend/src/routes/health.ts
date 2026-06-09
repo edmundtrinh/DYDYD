@@ -89,7 +89,7 @@ router.post(
       for (const metric of metrics) {
         // Find quests whose healthDataType matches this metric
         const matchingQuests = userQuests.filter(
-          (uq) => uq.quest.healthDataType === metric.type
+          (uq: any) => uq.quest.healthDataType === metric.type
         );
 
         for (const userQuest of matchingQuests) {
