@@ -12,6 +12,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@dydyd/shared$': '<rootDir>/../../packages/shared/src/index.ts',
   },
   moduleDirectories: ['node_modules', path.resolve(__dirname, '../../node_modules')],
   collectCoverageFrom: [
