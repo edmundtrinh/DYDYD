@@ -26,6 +26,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useHaptic } from '../../hooks/useHaptic';
 import {
   selectQuestLibrary,
   selectUserQuests,
@@ -71,6 +72,7 @@ const QuestDetailScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<QuestDetailRouteProp>();
   const dispatch = useAppDispatch();
+  const { trigger: haptic } = useHaptic();
 
   const { questId, userQuestId } = route.params;
 
@@ -124,6 +126,8 @@ const QuestDetailScreen: React.FC = () => {
   const handleComplete = useCallback(async () => {
     if (!userQuest || isCompletedToday || isLoading) return;
 
+    haptic('notificationSuccess');
+
     // Button press animation
     completeButtonScale.value = withSequence(
       withTiming(0.9, { duration: 100 }),
@@ -151,10 +155,11 @@ const QuestDetailScreen: React.FC = () => {
     } catch (error) {
       Alert.alert('Error', 'Failed to complete quest. Please try again.');
     }
-  }, [userQuest, isCompletedToday, isLoading, customValue, notes, dispatch]);
+  }, [userQuest, isCompletedToday, isLoading, customValue, notes, dispatch, haptic]);
 
   // Handle activate/deactivate
   const handleToggleActive = useCallback(async () => {
+    haptic('impactMedium');
     if (isActive && userQuest) {
       Alert.alert(
         'Deactivate Quest',
@@ -173,7 +178,7 @@ const QuestDetailScreen: React.FC = () => {
     } else if (quest) {
       await dispatch(activateQuest(quest.id));
     }
-  }, [isActive, userQuest, quest, dispatch]);
+  }, [isActive, userQuest, quest, dispatch, haptic]);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
