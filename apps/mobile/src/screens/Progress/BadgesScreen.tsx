@@ -1,15 +1,16 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { PREDEFINED_BADGES } from '@dydyd/shared';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import {
+  fetchEarnedBadges,
+  selectEarnedBadges,
+} from '../../store/slices/progressSlice';
 import { Badge as BadgeComponent } from '../../components/Badge';
 
 type BadgeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
-// Placeholder earned badges -- will be wired to Redux
-const EARNED_BADGE_NAMES = new Set(['First Steps', 'Week Warrior']);
-
-// Group badges by rarity for display
 const RARITY_ORDER: BadgeRarity[] = ['legendary', 'epic', 'rare', 'common'];
 const RARITY_LABELS: Record<string, string> = {
   legendary: 'Legendary',
@@ -19,24 +20,42 @@ const RARITY_LABELS: Record<string, string> = {
 };
 
 export const BadgesScreen: React.FC = () => {
+  const dispatch = useAppDispatch();
   const { colors, typography, spacing, radii } = useTheme();
+  const earnedBadges = useAppSelector(selectEarnedBadges);
+  const isLoading = useAppSelector((state) => state.progress.isLoadingBadges);
+
+  useEffect(() => {
+    dispatch(fetchEarnedBadges());
+  }, [dispatch]);
+
+  const earnedBadgeNames = useMemo(
+    () => new Set(earnedBadges.map((ub) => ub.badge?.name ?? ub.badgeId)),
+    [earnedBadges],
+  );
 
   const earnedCount = PREDEFINED_BADGES.filter((b) =>
-    EARNED_BADGE_NAMES.has(b.name),
+    earnedBadgeNames.has(b.name),
   ).length;
 
-  // Group badges by rarity
   const grouped = RARITY_ORDER.map((rarity) => ({
     rarity,
     badges: PREDEFINED_BADGES.filter((b) => b.rarity === rarity),
   })).filter((g) => g.badges.length > 0);
+
+  if (isLoading && earnedBadges.length === 0) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { gap: spacing.xl }]}
     >
-      {/* Header summary */}
       <View style={styles.headerRow}>
         <View
           style={[
@@ -71,7 +90,6 @@ export const BadgesScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Badge groups by rarity */}
       {grouped.map((group) => {
         const rarityColorMap: Record<string, string> = {
           common: colors.rarityCommon,
@@ -85,7 +103,6 @@ export const BadgesScreen: React.FC = () => {
 
         return (
           <View key={group.rarity}>
-            {/* Section header */}
             <View style={[styles.sectionHeader, { marginBottom: spacing.md }]}>
               <View
                 style={[
@@ -118,10 +135,9 @@ export const BadgesScreen: React.FC = () => {
               </Text>
             </View>
 
-            {/* Badge grid */}
             <View style={[styles.grid, { gap: spacing.sm }]}>
               {group.badges.map((badge) => {
-                const isEarned = EARNED_BADGE_NAMES.has(badge.name);
+                const isEarned = earnedBadgeNames.has(badge.name);
                 return (
                   <BadgeComponent
                     key={badge.name}
@@ -148,6 +164,11 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerRow: {
     alignItems: 'center',
