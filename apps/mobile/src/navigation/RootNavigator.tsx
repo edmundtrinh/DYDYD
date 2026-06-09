@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppSelector } from '../store/hooks';
 import { selectIsAuthenticated, selectIsOnboarded } from '../store/slices/authSlice';
 import { ToastContainer } from '../components/ToastContainer';
+import { BadgeEarnedModal } from '../components/BadgeEarnedModal';
 
 import { AuthNavigator } from './AuthNavigator';
 import { OnboardingNavigator } from './OnboardingNavigator';
@@ -38,6 +39,7 @@ export const RootNavigator: React.FC = () => {
         )}
       </Stack.Navigator>
       <ToastContainer />
+      <BadgeEarnedModal />
     </View>
   );
 };
