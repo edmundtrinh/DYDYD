@@ -19,6 +19,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useHaptic } from '../../hooks/useHaptic';
 import {
   fetchQuestLibrary,
   fetchUserQuests,
@@ -54,6 +55,7 @@ const QuestsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
+  const { trigger: haptic } = useHaptic();
 
   const questLibrary = useAppSelector(selectQuestLibrary);
   const userQuests = useAppSelector(selectUserQuests);
@@ -80,14 +82,17 @@ const QuestsScreen: React.FC = () => {
   }, [dispatch]);
 
   const handleActivateQuest = async (questId: string) => {
+    haptic('impactMedium');
     await dispatch(activateQuest(questId));
   };
 
   const handleDeactivateQuest = async (userQuestId: string) => {
+    haptic('impactMedium');
     await dispatch(deactivateQuest(userQuestId));
   };
 
   const handleQuestPress = (quest: Quest, userQuest?: UserQuest) => {
+    haptic('impactLight');
     navigation.navigate('QuestDetail', {
       questId: quest.id,
       userQuestId: userQuest?.id,

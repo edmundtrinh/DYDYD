@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useHaptic } from '../../hooks/useHaptic';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Animated, {
@@ -170,6 +171,7 @@ export const HomeScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { trigger: haptic } = useHaptic();
   
   const user = useSelector(selectProfile);
   const stats = useSelector(selectUserStats);
@@ -235,8 +237,9 @@ export const HomeScreen: React.FC = () => {
   
   // Complete quest handler
   const handleCompleteQuest = useCallback((questId: string) => {
+    haptic('notificationSuccess');
     dispatch(completeQuest({ userQuestId: questId, value: 1, source: HealthDataSource.MANUAL }));
-  }, [dispatch]);
+  }, [dispatch, haptic]);
   
   // Sort quests by priority
   const sortedQuests = useMemo(() => {
