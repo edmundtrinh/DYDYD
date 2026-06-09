@@ -4,6 +4,7 @@
 
 import { Platform } from 'react-native';
 import { HealthData, HealthDataSource, HealthDataType, HealthSyncResult } from '@dydyd/shared';
+import { apiClient } from '../api/client';
 
 // Platform-specific imports will be handled by native modules
 // These are placeholders for the actual implementations
@@ -179,12 +180,39 @@ class HealthService {
       }
     }
 
+    if (dataPoints.length > 0) {
+      try {
+        const syncResult = await this.syncToBackend(dataPoints);
+        return {
+          success: true,
+          dataPoints,
+          questsAutoCompleted: syncResult.questsAutoCompleted || [],
+          xpEarned: syncResult.xpEarned || 0,
+        };
+      } catch {
+        // Backend sync failed but local data is still valid
+      }
+    }
+
     return {
       success: true,
       dataPoints,
       questsAutoCompleted,
       xpEarned,
     };
+  }
+
+  async syncToBackend(
+    dataPoints: HealthData[],
+  ): Promise<{ questsAutoCompleted: string[]; xpEarned: number }> {
+    const metrics = dataPoints.map((dp) => ({
+      type: dp.type,
+      value: dp.value,
+      source: dp.source,
+      timestamp: dp.timestamp,
+    }));
+
+    return apiClient.post('/health/sync', { metrics });
   }
 
   async fetchData(
