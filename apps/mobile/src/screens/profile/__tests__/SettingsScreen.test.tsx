@@ -90,7 +90,7 @@ describe('SettingsScreen', () => {
     const themeAction = actions.find((a: any) => a.type === 'ui/setTheme');
     // The switch doesn't auto-dispatch on render, need to fire change
     // Just verify the screen renders without disabled prop
-    expect(store.getState().ui.theme).toBe('dark');
+    expect((store.getState() as any).ui.theme).toBe('dark');
   });
 
   it('dispatches updateSettings when haptic toggle changes', () => {

@@ -1,11 +1,6 @@
 name: EAS Build
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/mobile/**'
-      - 'packages/shared/**'
   workflow_dispatch:
     inputs:
       platform:
