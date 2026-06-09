@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -63,6 +64,7 @@ const QuestsScreen: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Get active quest IDs for quick lookup
   const activeQuestIds = new Set(userQuests.filter(uq => uq.isActive).map(uq => uq.questId));
@@ -103,8 +105,15 @@ const QuestsScreen: React.FC = () => {
     navigation.navigate('AddQuest', {});
   };
 
-  // Filter quests based on active filter
+  // Filter quests based on active filter and search term
   const filteredQuests = questLibrary.filter((quest) => {
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      if (!quest.name.toLowerCase().includes(term) &&
+          !quest.description?.toLowerCase().includes(term)) {
+        return false;
+      }
+    }
     if (activeFilter === 'all') return true;
     if (activeFilter === 'active') return activeQuestIds.has(quest.id);
     return quest.category === activeFilter;
@@ -126,6 +135,29 @@ const QuestsScreen: React.FC = () => {
         <TouchableOpacity style={styles.addButton} onPress={handleAddCustomQuest}>
           <Text style={styles.addButtonText}>+ Custom</Text>
         </TouchableOpacity>
+      </Animated.View>
+
+      {/* Search Bar */}
+      <Animated.View entering={FadeInDown.delay(150)} style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search quests..."
+          placeholderTextColor="#5A5A6E"
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          testID="quest-search-input"
+        />
+        {searchTerm.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => setSearchTerm('')}
+            accessibilityLabel="Clear search"
+          >
+            <Text style={styles.clearButtonText}>{'\u{2715}'}</Text>
+          </TouchableOpacity>
+        )}
       </Animated.View>
 
       {/* Filter Tabs */}
@@ -439,6 +471,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F1A',
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#2A2A3E',
+  },
+  clearButton: {
+    marginLeft: 8,
+    padding: 8,
+  },
+  clearButtonText: {
+    fontSize: 16,
+    color: '#888899',
   },
   header: {
     flexDirection: 'row',
