@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'react-native',
@@ -6,11 +8,12 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|react-native-vector-icons|@react-native-async-storage|@react-native-community|react-redux|@reduxjs/toolkit)/)',
+    '<rootDir>/../../node_modules/(?!(react-native|@react-native|@react-navigation|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|react-native-vector-icons|@react-native-async-storage|@react-native-community|react-redux|@reduxjs/toolkit)/)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  moduleDirectories: ['node_modules', path.resolve(__dirname, '../../node_modules')],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/__tests__/**',
