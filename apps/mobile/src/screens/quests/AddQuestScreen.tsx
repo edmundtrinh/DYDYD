@@ -44,7 +44,7 @@ export const AddQuestScreen: React.FC = () => {
       await dispatch(
         createCustomQuest({
           name: name.trim(),
-          description: description.trim() || undefined,
+          description: description.trim(),
           category,
           frequency,
           baseXP: 5,

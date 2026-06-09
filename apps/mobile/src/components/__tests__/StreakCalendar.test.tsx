@@ -40,14 +40,26 @@ describe('StreakCalendar', () => {
         totalXP: 25,
         questsCompleted: 3,
         questsTotal: 5,
-        categoryBreakdown: {},
+        categoryBreakdown: {
+          physical_health: 0,
+          mental_wellness: 0,
+          career_productivity: 0,
+          relationships_social: 0,
+          home_chores: 0,
+        },
       },
       {
         date: yesterday.toISOString().split('T')[0],
         totalXP: 15,
         questsCompleted: 2,
         questsTotal: 5,
-        categoryBreakdown: {},
+        categoryBreakdown: {
+          physical_health: 0,
+          mental_wellness: 0,
+          career_productivity: 0,
+          relationships_social: 0,
+          home_chores: 0,
+        },
       },
     ];
 
