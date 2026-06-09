@@ -1,10 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProgressStackParamList } from '../../navigation/MainTabNavigator';
-import { QuestCategory, CATEGORY_METADATA } from '@dydyd/shared';
+import { QuestCategory, CATEGORY_METADATA, calculateLevelProgress } from '@dydyd/shared';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import {
+  fetchUserStats,
+  fetchDailyProgress,
+  selectUserStats,
+  selectDailyProgress,
+  selectIsLoadingProgress,
+} from '../../store/slices/progressSlice';
 import { XPBar } from '../../components/XPBar';
 import { StatCard } from '../../components/StatCard';
 import { Card } from '../../components/Card';
@@ -12,48 +20,78 @@ import { CategoryIcon, getCategoryColor } from '../../components/CategoryIcon';
 
 type Nav = NativeStackNavigationProp<ProgressStackParamList, 'ProgressMain'>;
 
-// Placeholder data -- will be wired to Redux slices
-const PLACEHOLDER_STATS = {
-  totalXP: 1100,
-  level: 7,
-  currentLevelXP: 62,
-  requiredLevelXP: 166,
-  streak: 12,
-  bestStreak: 42,
-  questsDone: 142,
-  badgesEarned: 4,
-};
-
-const CATEGORY_DATA: Array<{
-  category: QuestCategory;
-  completions: number;
-  totalXP: number;
-  activeCount: number;
-}> = [
-  { category: QuestCategory.PHYSICAL_HEALTH, completions: 43, totalXP: 560, activeCount: 2 },
-  { category: QuestCategory.MENTAL_WELLNESS, completions: 47, totalXP: 212, activeCount: 1 },
-  { category: QuestCategory.CAREER_PRODUCTIVITY, completions: 14, totalXP: 148, activeCount: 1 },
-  { category: QuestCategory.RELATIONSHIPS_SOCIAL, completions: 8, totalXP: 60, activeCount: 1 },
-  { category: QuestCategory.HOME_CHORES, completions: 30, totalXP: 120, activeCount: 1 },
-];
-
-const WEEKLY_DATA = [
-  { day: 'M', xp: 25, completed: 4 },
-  { day: 'T', xp: 18, completed: 3 },
-  { day: 'W', xp: 30, completed: 5 },
-  { day: 'T', xp: 12, completed: 2 },
-  { day: 'F', xp: 22, completed: 3 },
-  { day: 'S', xp: 8, completed: 1 },
-  { day: 'S', xp: 0, completed: 0 },
-];
-
-const maxWeeklyXP = Math.max(...WEEKLY_DATA.map((d) => d.xp), 1);
+const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export const ProgressScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const dispatch = useAppDispatch();
   const { colors, typography, spacing, radii } = useTheme();
 
-  const maxCatXP = Math.max(...CATEGORY_DATA.map((c) => c.totalXP), 1);
+  const stats = useAppSelector(selectUserStats);
+  const dailyProgress = useAppSelector(selectDailyProgress);
+  const isLoading = useAppSelector(selectIsLoadingProgress);
+
+  useEffect(() => {
+    dispatch(fetchUserStats());
+    dispatch(fetchDailyProgress(7));
+  }, [dispatch]);
+
+  const levelProgress = useMemo(
+    () => (stats ? calculateLevelProgress(stats.totalXP) : null),
+    [stats],
+  );
+
+  const weeklyData = useMemo(() => {
+    if (dailyProgress.length === 0) {
+      return DAY_LABELS.map((day) => ({ day, xp: 0, completed: 0 }));
+    }
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    return DAY_LABELS.map((day, i) => {
+      const targetDate = new Date(monday);
+      targetDate.setDate(monday.getDate() + i);
+      const dateStr = targetDate.toISOString().split('T')[0];
+      const progress = dailyProgress.find((d) => d.date.startsWith(dateStr));
+      return {
+        day,
+        xp: progress?.totalXP ?? 0,
+        completed: progress?.questsCompleted ?? 0,
+      };
+    });
+  }, [dailyProgress]);
+
+  const maxWeeklyXP = Math.max(...weeklyData.map((d) => d.xp), 1);
+  const weeklyTotal = weeklyData.reduce((s, d) => s + d.xp, 0);
+
+  const categoryData = useMemo(() => {
+    if (!stats?.categoryStats) return [];
+    const categories = Object.values(QuestCategory);
+    return categories
+      .map((category) => {
+        const catStats = stats.categoryStats[category];
+        return {
+          category,
+          completions: catStats?.totalCompletions ?? 0,
+          totalXP: catStats?.totalXP ?? 0,
+        };
+      })
+      .filter((c) => c.totalXP > 0 || c.completions > 0);
+  }, [stats]);
+
+  const maxCatXP = Math.max(...categoryData.map((c) => c.totalXP), 1);
+
+  if (isLoading && !stats) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -63,9 +101,9 @@ export const ProgressScreen: React.FC = () => {
       {/* XP Progress */}
       <Card header="Level Progress">
         <XPBar
-          currentXP={PLACEHOLDER_STATS.currentLevelXP}
-          requiredXP={PLACEHOLDER_STATS.requiredLevelXP}
-          level={PLACEHOLDER_STATS.level}
+          currentXP={levelProgress?.xpInCurrentLevel ?? 0}
+          requiredXP={levelProgress?.xpForNextLevel ?? 100}
+          level={levelProgress?.currentLevel ?? 1}
           height={8}
         />
       </Card>
@@ -75,14 +113,14 @@ export const ProgressScreen: React.FC = () => {
         <View style={[styles.statsRow, { gap: spacing.sm }]}>
           <StatCard
             icon={'\u{1F525}'}
-            value={PLACEHOLDER_STATS.streak}
+            value={stats?.currentDayStreak ?? 0}
             label="Streak"
             sublabel="days"
             color={colors.orange}
           />
           <StatCard
             icon={'\u{1F3C6}'}
-            value={PLACEHOLDER_STATS.bestStreak}
+            value={stats?.longestDayStreak ?? 0}
             label="Best Streak"
             sublabel="days"
             color={colors.gold}
@@ -91,13 +129,13 @@ export const ProgressScreen: React.FC = () => {
         <View style={[styles.statsRow, { gap: spacing.sm }]}>
           <StatCard
             icon={'\u{2713}'}
-            value={PLACEHOLDER_STATS.questsDone}
+            value={stats?.totalQuestsCompleted ?? 0}
             label="Quests Done"
             color={colors.primary}
           />
           <StatCard
             icon={'\u{1F3C5}'}
-            value={PLACEHOLDER_STATS.badgesEarned}
+            value={stats?.badgesEarned ?? 0}
             label="Badges"
             color={colors.purple}
           />
@@ -107,9 +145,9 @@ export const ProgressScreen: React.FC = () => {
       {/* Weekly chart */}
       <Card header="This Week">
         <View style={[styles.weekChart, { marginTop: spacing.sm }]}>
-          {WEEKLY_DATA.map((day, i) => {
+          {weeklyData.map((day, i) => {
             const barHeight = day.xp > 0 ? Math.max((day.xp / maxWeeklyXP) * 80, 8) : 8;
-            const isToday = i === new Date().getDay() - 1; // Rough approximation
+            const isToday = i === ((new Date().getDay() + 6) % 7);
 
             return (
               <View key={`${day.day}-${i}`} style={styles.dayColumn}>
@@ -177,84 +215,86 @@ export const ProgressScreen: React.FC = () => {
               fontWeight: typography.weightHeavy,
             }}
           >
-            {WEEKLY_DATA.reduce((s, d) => s + d.xp, 0)} XP
+            {weeklyTotal} XP
           </Text>
         </View>
       </Card>
 
       {/* Category breakdown */}
-      <Card header="By Category">
-        {CATEGORY_DATA.map((cat) => {
-          const catColor = getCategoryColor(cat.category, colors);
-          const meta = CATEGORY_METADATA[cat.category];
-          const barWidth = `${Math.max((cat.totalXP / maxCatXP) * 100, 3)}%` as `${number}%`;
+      {categoryData.length > 0 && (
+        <Card header="By Category">
+          {categoryData.map((cat) => {
+            const catColor = getCategoryColor(cat.category, colors);
+            const meta = CATEGORY_METADATA[cat.category];
+            const barWidth = `${Math.max((cat.totalXP / maxCatXP) * 100, 3)}%` as `${number}%`;
 
-          return (
-            <View
-              key={cat.category}
-              style={[
-                styles.categoryRow,
-                {
-                  borderBottomColor: colors.divider,
-                  paddingVertical: spacing.md,
-                },
-              ]}
-            >
-              <CategoryIcon category={cat.category} size={36} />
-              <View style={styles.categoryContent}>
-                <View style={styles.categoryTop}>
-                  <Text
-                    style={{
-                      color: colors.text,
-                      fontSize: typography.sizeBodySm,
-                      fontWeight: typography.weightSemi,
-                    }}
-                  >
-                    {meta.name}
-                  </Text>
-                  <Text
-                    style={{
-                      color: catColor,
-                      fontSize: typography.sizeBodySm,
-                      fontWeight: typography.weightHeavy,
-                    }}
-                  >
-                    {cat.totalXP} XP
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.catBar,
-                    {
-                      backgroundColor: colors.surface3,
-                      borderRadius: 3,
-                      marginTop: 6,
-                    },
-                  ]}
-                >
+            return (
+              <View
+                key={cat.category}
+                style={[
+                  styles.categoryRow,
+                  {
+                    borderBottomColor: colors.divider,
+                    paddingVertical: spacing.md,
+                  },
+                ]}
+              >
+                <CategoryIcon category={cat.category} size={36} />
+                <View style={styles.categoryContent}>
+                  <View style={styles.categoryTop}>
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontSize: typography.sizeBodySm,
+                        fontWeight: typography.weightSemi,
+                      }}
+                    >
+                      {meta.name}
+                    </Text>
+                    <Text
+                      style={{
+                        color: catColor,
+                        fontSize: typography.sizeBodySm,
+                        fontWeight: typography.weightHeavy,
+                      }}
+                    >
+                      {cat.totalXP} XP
+                    </Text>
+                  </View>
                   <View
+                    style={[
+                      styles.catBar,
+                      {
+                        backgroundColor: colors.surface3,
+                        borderRadius: 3,
+                        marginTop: 6,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={{
+                        height: 6,
+                        width: barWidth,
+                        backgroundColor: catColor,
+                        borderRadius: 3,
+                      }}
+                    />
+                  </View>
+                  <Text
                     style={{
-                      height: 6,
-                      width: barWidth,
-                      backgroundColor: catColor,
-                      borderRadius: 3,
+                      color: colors.textTertiary,
+                      fontSize: typography.sizeMicro,
+                      marginTop: 4,
                     }}
-                  />
+                  >
+                    {cat.completions} completions
+                  </Text>
                 </View>
-                <Text
-                  style={{
-                    color: colors.textTertiary,
-                    fontSize: typography.sizeMicro,
-                    marginTop: 4,
-                  }}
-                >
-                  {cat.activeCount} active {'·'} {cat.completions} completions
-                </Text>
               </View>
-            </View>
-          );
-        })}
-      </Card>
+            );
+          })}
+        </Card>
+      )}
 
       {/* Badges link */}
       <TouchableOpacity
@@ -300,6 +340,11 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statsGrid: {},
   statsRow: {
