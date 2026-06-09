@@ -280,4 +280,53 @@ router.put(
   }
 );
 
+/**
+ * DELETE /api/user/account
+ * Delete user account and all associated data
+ */
+router.delete(
+  '/account',
+  authenticate,
+  body('password').notEmpty().withMessage('Password confirmation required'),
+  validate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.userId!;
+      const { password } = req.body;
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw Errors.notFound('User not found');
+      }
+
+      const bcrypt = require('bcryptjs');
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        throw Errors.unauthorized('Incorrect password');
+      }
+
+      await prisma.$transaction([
+        prisma.questCompletion.deleteMany({ where: { userId } }),
+        prisma.userQuest.deleteMany({ where: { userId } }),
+        prisma.userBadge.deleteMany({ where: { userId } }),
+        prisma.notification.deleteMany({ where: { userId } }),
+        prisma.deviceToken.deleteMany({ where: { userId } }),
+        prisma.refreshToken.deleteMany({ where: { userId } }),
+        prisma.categoryPriority.deleteMany({ where: { userId } }),
+        prisma.userSettings.deleteMany({ where: { userId } }),
+        prisma.user.delete({ where: { id: userId } }),
+      ]);
+
+      const response: ApiResponse<{ deleted: true }> = {
+        success: true,
+        data: { deleted: true },
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

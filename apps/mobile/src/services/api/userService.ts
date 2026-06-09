@@ -35,8 +35,8 @@ export const userService = {
     });
   },
 
-  async deleteAccount(): Promise<void> {
-    return apiClient.delete('/user/account');
+  async deleteAccount(password: string): Promise<void> {
+    return apiClient.delete('/user/account', { data: { password } });
   },
 
   async exportData(): Promise<{ downloadUrl: string }> {

@@ -70,6 +70,18 @@ export const updateCategoryPriorities = createAsyncThunk(
   }
 );
 
+export const deleteAccount = createAsyncThunk(
+  'user/deleteAccount',
+  async (password: string, { rejectWithValue }) => {
+    try {
+      await userService.deleteAccount(password);
+      return true;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to delete account');
+    }
+  }
+);
+
 // Slice
 const userSlice = createSlice({
   name: 'user',
