@@ -117,6 +117,18 @@ export const fetchLeaderboard = createAsyncThunk(
   }
 );
 
+export const checkBadges = createAsyncThunk(
+  'progress/checkBadges',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await progressService.checkBadges();
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to check badges');
+    }
+  }
+);
+
 // Slice
 const progressSlice = createSlice({
   name: 'progress',
@@ -196,6 +208,20 @@ const progressSlice = createSlice({
     builder.addCase(fetchLeaderboard.rejected, (state, action) => {
       state.isLoadingLeaderboard = false;
       state.error = action.payload as string;
+    });
+
+    // Check Badges
+    builder.addCase(checkBadges.fulfilled, (state, action) => {
+      const newBadges = action.payload;
+      if (newBadges.length > 0) {
+        const existingIds = new Set(state.earnedBadges.map((b) => b.id));
+        for (const badge of newBadges) {
+          if (!existingIds.has(badge.id)) {
+            state.earnedBadges.push(badge);
+            state.newBadgeIds.push(badge.id);
+          }
+        }
+      }
     });
   },
 });
