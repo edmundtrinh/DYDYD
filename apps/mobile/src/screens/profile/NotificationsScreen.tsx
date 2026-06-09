@@ -1,8 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { selectUserSettings, updateSettings } from '../../store/slices/userSlice';
 
 export const NotificationsScreen: React.FC = () => {
-  // TODO: Wire to userSlice notification settings
+  const dispatch = useAppDispatch();
+  const settings = useAppSelector(selectUserSettings);
+
+  const notificationsEnabled = settings?.notificationsEnabled ?? true;
+  const soundEnabled = settings?.soundEnabled ?? true;
+
+  const handleNotificationsToggle = (value: boolean) => {
+    dispatch(updateSettings({ notificationsEnabled: value }));
+  };
+
+  const handleSoundToggle = (value: boolean) => {
+    dispatch(updateSettings({ soundEnabled: value }));
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -13,14 +27,19 @@ export const NotificationsScreen: React.FC = () => {
             <Text style={styles.rowLabel}>Daily Reminder</Text>
             <Text style={styles.rowDesc}>Get reminded to complete your dailies</Text>
           </View>
-          <Switch value={true} disabled />
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={handleNotificationsToggle}
+            trackColor={{ false: '#3A3A55', true: '#2EA043' }}
+            thumbColor="#FFFFFF"
+          />
         </View>
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowLabel}>Reminder Time</Text>
-            <Text style={styles.rowDesc}>9:00 AM</Text>
+            <Text style={styles.rowDesc}>{settings?.dailyReminderTime ?? '9:00 AM'}</Text>
           </View>
-          <Text style={styles.rowChevron}>›</Text>
+          <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </View>
       </View>
 
@@ -31,14 +50,24 @@ export const NotificationsScreen: React.FC = () => {
             <Text style={styles.rowLabel}>Streak at Risk</Text>
             <Text style={styles.rowDesc}>Warn when streak might break</Text>
           </View>
-          <Switch value={true} disabled />
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={handleNotificationsToggle}
+            trackColor={{ false: '#3A3A55', true: '#2EA043' }}
+            thumbColor="#FFFFFF"
+          />
         </View>
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowLabel}>Achievements</Text>
             <Text style={styles.rowDesc}>Badge unlocks and level ups</Text>
           </View>
-          <Switch value={true} disabled />
+          <Switch
+            value={soundEnabled}
+            onValueChange={handleSoundToggle}
+            trackColor={{ false: '#3A3A55', true: '#2EA043' }}
+            thumbColor="#FFFFFF"
+          />
         </View>
       </View>
     </ScrollView>
