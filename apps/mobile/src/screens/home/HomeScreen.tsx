@@ -2,7 +2,7 @@
 // DYDYD - Home Screen
 // ============================================
 
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ import { selectProfile, selectCategoryPriorities } from '../../store/slices/user
 import { syncHealthData, selectTodayHealthData } from '../../store/slices/healthSlice';
 import { CATEGORY_METADATA, calculateLevelProgress, HealthDataSource, QuestCategory } from '@dydyd/shared';
 import { wearablesManager } from '../../services/wearables';
+import { QuestCompletionOverlay } from '../../components/QuestCompletionOverlay';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -172,6 +173,11 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { trigger: haptic } = useHaptic();
+  const [completionOverlay, setCompletionOverlay] = useState<{
+    visible: boolean;
+    xpEarned: number;
+    questName: string;
+  }>({ visible: false, xpEarned: 0, questName: '' });
   
   const user = useSelector(selectProfile);
   const stats = useSelector(selectUserStats);
@@ -238,8 +244,12 @@ export const HomeScreen: React.FC = () => {
   // Complete quest handler
   const handleCompleteQuest = useCallback((questId: string) => {
     haptic('notificationSuccess');
+    const quest = todayQuests.find((q: any) => q.id === questId);
+    const xp = quest?.quest?.baseXP ?? 5;
+    const name = quest?.quest?.name ?? 'Quest';
     dispatch(completeQuest({ userQuestId: questId, value: 1, source: HealthDataSource.MANUAL }));
-  }, [dispatch, haptic]);
+    setCompletionOverlay({ visible: true, xpEarned: xp, questName: name });
+  }, [dispatch, haptic, todayQuests]);
   
   // Sort quests by priority
   const sortedQuests = useMemo(() => {
@@ -258,6 +268,12 @@ export const HomeScreen: React.FC = () => {
   
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <QuestCompletionOverlay
+        visible={completionOverlay.visible}
+        xpEarned={completionOverlay.xpEarned}
+        questName={completionOverlay.questName}
+        onDismiss={() => setCompletionOverlay({ visible: false, xpEarned: 0, questName: '' })}
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
