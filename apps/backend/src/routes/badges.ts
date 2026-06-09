@@ -86,10 +86,10 @@ router.post(
         where: { userId },
         select: { badgeId: true },
       });
-      const earnedSet = new Set(earnedBadgeIds.map((ub) => ub.badgeId));
+      const earnedSet = new Set(earnedBadgeIds.map((ub: { badgeId: string }) => ub.badgeId));
 
       const allBadges = await prisma.badge.findMany();
-      const unearnedBadges = allBadges.filter((b) => !earnedSet.has(b.id));
+      const unearnedBadges = allBadges.filter((b: { id: string }) => !earnedSet.has(b.id));
 
       if (unearnedBadges.length === 0) {
         return res.json({
@@ -118,7 +118,7 @@ router.post(
 
       // Max streak across all quests
       const maxStreak = Math.max(
-        ...userQuests.map((q) => q.currentStreak),
+        ...userQuests.map((q: { currentStreak: number }) => q.currentStreak),
         0
       );
 
@@ -164,7 +164,7 @@ router.post(
       let xpBonusTotal = 0;
 
       if (newlyAwarded.length > 0) {
-        const createOps = newlyAwarded.map((badge) =>
+        const createOps = newlyAwarded.map((badge: { id: string }) =>
           prisma.userBadge.create({
             data: {
               userId,
@@ -173,7 +173,7 @@ router.post(
           })
         );
 
-        xpBonusTotal = newlyAwarded.reduce((sum, b) => sum + b.xpBonus, 0);
+        xpBonusTotal = newlyAwarded.reduce((sum: number, b: { xpBonus: number }) => sum + b.xpBonus, 0);
 
         await prisma.$transaction([
           ...createOps,
