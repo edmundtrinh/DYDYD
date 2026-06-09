@@ -1,4 +1,5 @@
-const SENTRY_DSN = process.env.SENTRY_DSN || '';
+declare const process: { env: Record<string, string | undefined> };
+const SENTRY_DSN = process?.env?.SENTRY_DSN || '';
 
 let Sentry: any = null;
 

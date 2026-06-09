@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction, IRouter } from 'express';
+import bcrypt from 'bcryptjs';
 import { body } from 'express-validator';
 import { validate } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
@@ -299,7 +300,6 @@ router.delete(
         throw Errors.notFound('User not found');
       }
 
-      const bcrypt = require('bcryptjs');
       const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) {
         throw Errors.unauthorized('Incorrect password');
