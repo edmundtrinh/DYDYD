@@ -1,8 +1,8 @@
 # PRD: History Logging & Pattern Insights
 
-> **Status**: DRAFT
+> **Status**: APPROVED (2026-06-16)
 > **Priority**: High — core differentiator
-> **Phase**: 1-2 (data model in Phase 1, insights engine + dashboard in Phase 2)
+> **Phase**: 4 (milestoned delivery — see roadmap.md for execution order)
 
 ---
 
@@ -83,11 +83,11 @@ A **History Logging System** that records every quest completion with rich conte
 
 ## Dependencies
 
-- `QuestCompletion` model exists in Prisma schema (needs `timeBucket` field added)
-- Backend analytics service (new)
-- Progress screen enhancement (dashboard charts)
-- Widget infrastructure (Phase 2)
-- Apple Watch complication (Phase 2)
+- `QuestCompletion` model exists in Prisma schema — has `completedAt`, `value`, `source`, `periodStart`, `notes`. **Needs `timeBucket` enum field added** (one Prisma migration).
+- Backend analytics service (new — computes averages, detects deviations, generates digests)
+- Progress screen enhancement (completion history list, then dashboard charts)
+- Widget infrastructure (Phase 4 — see Q3 decision)
+- Apple Watch complication (Phase 4 — see Q8 decision)
 
 ---
 
