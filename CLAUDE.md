@@ -87,10 +87,11 @@ Always import domain types from `@dydyd/shared`, not defined locally in backend 
 
 ### Backend (`@dydyd/backend`)
 - **Express 4** with TypeScript, Prisma ORM, PostgreSQL
-- Route structure: `/api/auth`, `/api/quests`, `/api/user`, `/api/progress`, `/health`
+- Route structure: `/api/auth`, `/api/quests`, `/api/user`, `/api/progress`, `/api/health`, `/api/badges`, `/api/notifications`, `/health`
 - JWT auth: 15m access tokens, 7d refresh tokens; middleware in `src/middleware/auth.ts`
 - Rate limiting: 100 req/15min globally
-- Prisma schema at `prisma/schema.prisma` — 15 models covering users, quests, completions, badges, notifications, devices, refresh tokens
+- Prisma schema at `prisma/schema.prisma` — 11 models covering users, quests, completions, badges, notifications, devices, refresh tokens
+- Migrations managed via `prisma migrate` (not `db push`); initial baseline at `prisma/migrations/20260618000000_init`
 - Environment: copy `.env.example` → `.env` and configure `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`
 
 ### Mobile (`@dydyd/mobile`)
@@ -104,5 +105,45 @@ Always import domain types from `@dydyd/shared`, not defined locally in backend 
 - XP per level: exponential growth (`baseXP * growthRate^(level-1)`)
 - Quest categories: Physical Health, Mental Wellness, Career & Productivity, Relationships & Social, Home & Chores
 - Quests have frequency (daily/weekly/monthly), XP reward, optional health data source
-- Free users: max 5 custom quests; Premium: max 100
+- Free users: max 3 custom quests; Premium: max 50
 - Badges have rarity tiers; streak tracking is per-day/week/month
+
+## Testing
+
+### Backend Test Infrastructure
+- **Jest + supertest** for route-level unit tests; mocked Prisma via `jest.mock('../../lib/prisma')`
+- **Docker Postgres** on port 5433 for integration tests: `docker compose -f docker-compose.test.yml up -d`
+- Test files live in `apps/backend/src/__tests__/routes/` — 7 suites, 162 tests covering all API endpoints
+- Test helpers in `apps/backend/src/__tests__/helpers/prisma.ts` (integration test DB utilities)
+- Jest setup in `apps/backend/jest.setup.js` — sets NODE_ENV=test, test secrets, DATABASE_URL
+
+### Test Patterns
+- Each test suite creates its own Express app with only the route under test + errorHandler
+- Use proper UUIDs in test data (validator rejects non-UUID params)
+- Mock external modules (`bcryptjs`, `../../lib/streaks`) at module level
+- `beforeEach(() => jest.clearAllMocks())` for test isolation
+
+### Running Tests
+```bash
+yarn workspace @dydyd/backend test                           # All backend tests
+yarn workspace @dydyd/backend jest --testPathPattern=quests   # Single suite
+yarn workspace @dydyd/backend test:db:up                      # Start test DB
+yarn workspace @dydyd/backend test:integration                # Integration tests (requires Docker)
+```
+
+### CI Pipeline
+- **test**: Run all tests + lint
+- **db-validate**: Postgres service container validates schema syntax, migration drift, and clean migration apply
+- **typecheck**: TypeScript strict mode on backend + mobile
+
+## SDLC Workflow
+
+When implementing features, follow this process:
+1. Create a GitHub issue (or reference existing one)
+2. Create a feature branch from the appropriate base (`main` or parent feature branch)
+3. Implement the feature with tests
+4. Self-validate: all tests must pass before committing
+5. Run code review agents (`pr-review-toolkit:code-reviewer`, `pr-review-toolkit:silent-failure-hunter`)
+6. Create PR via GitHub REST API with summary and test plan
+7. Post decision record comment on the issue with: approach chosen, alternatives considered (decision table), assumptions, and tradeoffs
+8. Close issue only after tests are confirmed passing
