@@ -56,7 +56,8 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/dydyd_shadow
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/dydyd_ci
+      SHADOW_DATABASE_URL: postgresql://ci:ci@localhost:5432/dydyd_shadow
 
     steps:
       - name: Checkout
@@ -74,11 +75,14 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Create CI database
+        run: PGPASSWORD=ci createdb -h localhost -U ci dydyd_ci
+
       - name: Validate Prisma schema
         run: yarn workspace @dydyd/backend prisma validate
 
       - name: Check migration drift
-        run: yarn workspace @dydyd/backend prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "$DATABASE_URL" --exit-code
+        run: yarn workspace @dydyd/backend prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "$SHADOW_DATABASE_URL" --exit-code
         working-directory: apps/backend
 
       - name: Verify migrations apply cleanly
