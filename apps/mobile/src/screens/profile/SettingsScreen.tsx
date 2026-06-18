@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/MainTabNavigator';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
-import { selectUserSettings, updateSettings } from '../../store/slices/userSlice';
+import { selectUserSettings, updateSettings, deleteAccount } from '../../store/slices/userSlice';
 import { selectTheme, setTheme } from '../../store/slices/uiSlice';
+import { logout } from '../../store/slices/authSlice';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Settings'>;
 
@@ -15,7 +16,7 @@ export const SettingsScreen: React.FC = () => {
   const settings = useAppSelector(selectUserSettings);
   const theme = useAppSelector(selectTheme);
 
-  const isDarkMode = theme === 'dark' || theme === 'system';
+  const isDarkMode = theme === 'dark';
   const hapticEnabled = settings?.hapticFeedbackEnabled ?? true;
 
   const handleDarkModeToggle = (value: boolean) => {
@@ -24,6 +25,42 @@ export const SettingsScreen: React.FC = () => {
 
   const handleHapticToggle = (value: boolean) => {
     dispatch(updateSettings({ hapticFeedbackEnabled: value }));
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Log Out', onPress: () => dispatch(logout()) },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Delete Account',
+        'This action is permanent and cannot be undone. Enter your password to confirm.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: (password?: string) => {
+              if (password) {
+                dispatch(deleteAccount(password));
+              }
+            },
+          },
+        ],
+        'secure-text'
+      );
+    } else {
+      // TODO: Android needs a dedicated screen with password TextInput (Alert.prompt is iOS-only)
+      Alert.alert(
+        'Delete Account',
+        'This action is permanent and cannot be undone. A password confirmation screen will be added in a future update.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -68,7 +105,11 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.rowLabel}>Export Data</Text>
           <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.row}>
+        <TouchableOpacity style={styles.row} onPress={handleLogout}>
+          <Text style={styles.rowLabel}>Log Out</Text>
+          <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.row} onPress={handleDeleteAccount}>
           <Text style={[styles.rowLabel, { color: '#DC2626' }]}>Delete Account</Text>
           <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
