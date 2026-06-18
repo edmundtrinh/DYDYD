@@ -68,6 +68,7 @@ apps/backend/.env
 *.p12
 *.key
 secrets/
+token.txt
 
 # Package manager locks (keep one, ignore others if switching)
 # Uncomment the ones you don't use:

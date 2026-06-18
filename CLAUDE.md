@@ -66,6 +66,20 @@ yarn eas:build:android
 
 EAS Build runs in the cloud — iOS builds work from Windows too. Requires an Expo account and `EXPO_TOKEN` secret in GitHub.
 
+## GitHub API
+
+Do **not** use the `gh` CLI for GitHub operations. Use the GitHub REST API directly with a Personal Access Token.
+
+- Token location: `token.txt` in the repo root (gitignored — never commit)
+- Read the token at runtime: `Get-Content token.txt -Raw | ForEach-Object { $_.Trim() }`
+- Pass as header: `Authorization: Bearer <token>`
+- Example (PowerShell):
+  ```powershell
+  $token = Get-Content token.txt -Raw | ForEach-Object { $_.Trim() }
+  Invoke-RestMethod -Uri "https://api.github.com/repos/edmundtrinh/DYDYD/issues" `
+    -Headers @{ Authorization = "Bearer $token"; "User-Agent" = "DYDYD" }
+  ```
+
 ## Architecture
 
 ### Monorepo Structure
