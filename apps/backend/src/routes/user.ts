@@ -288,8 +288,9 @@ router.put(
 router.delete(
   '/account',
   authenticate,
-  body('password').notEmpty().withMessage('Password confirmation required'),
-  validate,
+  validate([
+    body('password').notEmpty().withMessage('Password confirmation required'),
+  ]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.userId!;
@@ -306,7 +307,6 @@ router.delete(
       }
 
       await prisma.$transaction([
-        prisma.questCompletion.deleteMany({ where: { userId } }),
         prisma.userQuest.deleteMany({ where: { userId } }),
         prisma.userBadge.deleteMany({ where: { userId } }),
         prisma.notification.deleteMany({ where: { userId } }),
