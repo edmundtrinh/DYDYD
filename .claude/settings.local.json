@@ -11,7 +11,8 @@
       "Bash(npx prisma generate:*)",
       "Bash(corepack yarn prisma generate:*)",
       "Bash(corepack yarn build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(curl:*)"
     ]
   }
 }

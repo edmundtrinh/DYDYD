@@ -136,6 +136,14 @@ yarn workspace @dydyd/backend test:integration                # Integration test
 - **db-validate**: Postgres service container validates schema syntax, migration drift, and clean migration apply
 - **typecheck**: TypeScript strict mode on backend + mobile
 
+## Code Style / Conventions
+
+- **TypeScript strict mode** is enforced across all workspaces — no implicit `any`, no loose nulls
+- **Always import domain types from `@dydyd/shared`** — never redefine `User`, `Quest`, `Badge`, etc. locally
+- **Avoid `as any`** — the only accepted exception is stripping sensitive fields before a response (e.g. `password: undefined as any`), which is itself a TODO: replace with Prisma `select` / `omit` to avoid the cast entirely
+- **Prefer `it.each`** for parameterized tests — use it for all validation-error cases instead of repeating `it()` blocks
+- Test every route's validation rules with a single `it.each` table covering each invalid field
+
 ## SDLC Workflow
 
 When implementing features, follow this process:
@@ -143,7 +151,9 @@ When implementing features, follow this process:
 2. Create a feature branch from the appropriate base (`main` or parent feature branch)
 3. Implement the feature with tests
 4. Self-validate: all tests must pass before committing
-5. Run code review agents (`pr-review-toolkit:code-reviewer`, `pr-review-toolkit:silent-failure-hunter`)
-6. Create PR via GitHub REST API with summary and test plan
+5. Run `/code-review --effort max` for correctness, security, and silent-failure gaps
+6. Create PR via **GitHub REST API** (PAT stored in `token.txt`, which is gitignored) — never use `gh` CLI
 7. Post decision record comment on the issue with: approach chosen, alternatives considered (decision table), assumptions, and tradeoffs
-8. Close issue only after tests are confirmed passing
+8. Close issue via GitHub REST API only after tests are confirmed passing — PRs do not auto-close issues on merge
+
+**Git discipline:** Never skip hooks (`--no-verify` is forbidden). Never commit directly to `main`.

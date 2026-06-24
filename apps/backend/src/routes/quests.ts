@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import { body, param } from 'express-validator';
+import { Prisma } from '@prisma/client';
 import { validate } from '../middleware/validate';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
@@ -219,39 +220,38 @@ router.post(
       // Calculate XP earned
       const xpEarned = userQuest.customXP || userQuest.quest.baseXP;
 
-      // Create completion
-      const completion = await prisma.questCompletion.create({
-        data: {
-          userQuestId,
-          xpEarned,
-          value,
-          source: source as HealthDataSource,
-          notes,
-          periodStart,
-        },
-      });
-
-      // Update user quest stats
-      const updatedUserQuest = await prisma.userQuest.update({
-        where: { id: userQuestId },
-        data: {
-          totalCompletions: { increment: 1 },
-          lastCompletedAt: now,
-          // Streak logic would be more complex in production
-          currentStreak: { increment: 1 },
-          longestStreak: {
-            set: Math.max(userQuest.longestStreak, userQuest.currentStreak + 1),
+      // Atomically create completion and update all stats in a single transaction
+      const [completion, updatedUserQuest] = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const newCompletion = await tx.questCompletion.create({
+          data: {
+            userQuestId,
+            xpEarned,
+            value,
+            source: source as HealthDataSource,
+            notes,
+            periodStart,
           },
-        },
-        include: { quest: true },
-      });
+        });
 
-      // Update user total XP
-      await prisma.user.update({
-        where: { id: req.userId! },
-        data: {
-          totalXP: { increment: xpEarned },
-        },
+        const updatedQuest = await tx.userQuest.update({
+          where: { id: userQuestId },
+          data: {
+            totalCompletions: { increment: 1 },
+            lastCompletedAt: now,
+            currentStreak: { increment: 1 },
+            longestStreak: {
+              set: Math.max(userQuest.longestStreak, userQuest.currentStreak + 1),
+            },
+          },
+          include: { quest: true },
+        });
+
+        await tx.user.update({
+          where: { id: req.userId! },
+          data: { totalXP: { increment: xpEarned } },
+        });
+
+        return [newCompletion, updatedQuest];
       });
 
       const response: ApiResponse<{ completion: any; userQuest: any; xpEarned: number }> = {

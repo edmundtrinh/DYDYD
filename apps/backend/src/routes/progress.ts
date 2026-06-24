@@ -262,6 +262,11 @@ router.get(
         [QuestCategory.HOME_CHORES]: 0,
       };
 
+      // Fetch active quest count once — it's the same for all 7 days
+      const totalQuests = await prisma.userQuest.count({
+        where: { userId: req.userId!, isActive: true },
+      });
+
       for (let i = 0; i < 7; i++) {
         const dayStart = new Date(weekStart);
         dayStart.setDate(weekStart.getDate() + i);
@@ -305,13 +310,6 @@ router.get(
           dayXP += completion.xpEarned;
         }
         totalWeekXP += dayXP;
-
-        const totalQuests = await prisma.userQuest.count({
-          where: {
-            userId: req.userId!,
-            isActive: true,
-          },
-        });
 
         dailyProgress.push({
           date: dayStart.toISOString(),
@@ -406,35 +404,57 @@ router.get(
       let users;
 
       if (type === 'weekly') {
-        // Get weekly XP from completions
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         weekStart.setHours(0, 0, 0, 0);
 
+        // Aggregate weekly XP per userQuest, then join to users
         const weeklyStats = await prisma.questCompletion.groupBy({
           by: ['userQuestId'],
-          where: {
-            completedAt: {
-              gte: weekStart,
-            },
-          },
-          _sum: {
-            xpEarned: true,
-          },
+          where: { completedAt: { gte: weekStart } },
+          _sum: { xpEarned: true },
         });
 
-        // For simplicity, fall back to total XP ranking
-        users = await prisma.user.findMany({
-          orderBy: { totalXP: 'desc' },
-          take: limit,
-          select: {
-            id: true,
-            displayName: true,
-            avatarUrl: true,
-            totalXP: true,
-            level: true,
-          },
+        // Map userQuestId → weekly XP, then resolve to userId
+        const userQuestIds = weeklyStats.map((s: { userQuestId: string }) => s.userQuestId);
+        const userQuestMap = await prisma.userQuest.findMany({
+          where: { id: { in: userQuestIds } },
+          select: { id: true, userId: true },
         });
+
+        const weeklyXPByUser = new Map<string, number>();
+        for (const stat of weeklyStats) {
+          const uq = userQuestMap.find((u: { id: string; userId: string }) => u.id === stat.userQuestId);
+          if (uq) {
+            weeklyXPByUser.set(uq.userId, (weeklyXPByUser.get(uq.userId) ?? 0) + (stat._sum.xpEarned ?? 0));
+          }
+        }
+
+        const topUserIds = [...weeklyXPByUser.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, limit)
+          .map(([id]) => id);
+
+        const userRecords = await prisma.user.findMany({
+          where: { id: { in: topUserIds } },
+          select: { id: true, displayName: true, avatarUrl: true, totalXP: true, level: true },
+        });
+
+        users = topUserIds
+          .map((id) => userRecords.find((u: { id: string }) => u.id === id))
+          .filter(Boolean);
+
+        const leaderboard = users.map((user: any, index: number) => ({
+          userId: user.id,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          totalXP: user.totalXP,
+          level: user.level,
+          rank: index + 1,
+          weeklyXP: weeklyXPByUser.get(user.id) ?? 0,
+        }));
+
+        return res.json({ success: true, data: leaderboard } as ApiResponse<typeof leaderboard>);
       } else {
         users = await prisma.user.findMany({
           orderBy: { totalXP: 'desc' },
@@ -456,7 +476,7 @@ router.get(
         totalXP: user.totalXP,
         level: user.level,
         rank: index + 1,
-        weeklyXP: user.totalXP, // Simplified
+        weeklyXP: 0,
       }));
 
       const response: ApiResponse<typeof leaderboard> = {

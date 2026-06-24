@@ -45,9 +45,11 @@ function calculateLongestStreak(
   if (completionDates.length === 0) return 0;
 
   // Deduplicate by period — group completions into their period-start date
+  // For weekly/monthly, bucket by week/month start, not day start, so that
+  // consecutive periods are separated by exactly getExpectedGap() days.
   const periodSet = new Set<string>();
   for (const d of completionDates) {
-    const start = getStartOfDay(d);
+    const start = getPeriodStart(d, frequency);
     periodSet.add(start.toISOString());
   }
 
@@ -74,6 +76,22 @@ function calculateLongestStreak(
   }
 
   return longest;
+}
+
+function getPeriodStart(date: Date, frequency: QuestFrequency): Date {
+  switch (frequency) {
+    case QuestFrequency.WEEKLY: {
+      const d = new Date(date);
+      d.setDate(d.getDate() - d.getDay()); // Sunday of that week
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case QuestFrequency.MONTHLY: {
+      return new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+    default:
+      return getStartOfDay(date);
+  }
 }
 
 function getExpectedGap(frequency: QuestFrequency): number {
