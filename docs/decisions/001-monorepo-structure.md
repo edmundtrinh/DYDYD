@@ -36,7 +36,7 @@ Turbo pipelines enforce build order: `shared` must build before `backend` or `mo
 
 - **CI complexity.** Every push runs tests for all packages even if only one changed. Turbo's caching mitigates this, but the CI workflow still needs to understand package boundaries for database service containers (backend-only concern).
 - **Tooling overhead.** Turborepo configuration, workspace-aware scripts, and path resolution add cognitive load for new contributors. The root `package.json` has workspace-scoped script shortcuts to reduce friction.
-- **React Native constraints.** Metro bundler has historically had issues with symlinked workspaces. The project uses explicit `watchFolders` and `nodeModulesPaths` configuration in `metro.config.js` to resolve this.
+- **React Native constraints.** Metro bundler has historically had issues with symlinked workspaces. Projects using Yarn Workspaces with React Native may need `watchFolders` and `nodeModulesPaths` configuration in `metro.config.js` to resolve module resolution issues.
 - **Yarn 4 migration friction.** Yarn 4 (Berry) with PnP mode is not fully compatible with React Native. The project uses `nodeLinker: node-modules` to maintain compatibility, losing some PnP benefits.
 
 ## Alternatives Considered

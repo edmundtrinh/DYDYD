@@ -7,18 +7,18 @@
 
 ## Index
 
-| ADR | Title | Status | Date |
-|-----|-------|--------|------|
-| [001](001-monorepo-structure.md) | Yarn Workspaces + Turborepo Monorepo | Accepted | 2026-05-28 |
-| [002](002-expo-over-bare-rn.md) | Expo + EAS Build Over Bare React Native | Accepted | 2026-05-28 |
-| [003](003-cng-adoption.md) | Continuous Native Generation (CNG) | Accepted | 2026-06-16 |
-| [004](004-compassionate-streaks.md) | Compassionate Streak Design | Accepted | 2026-06-16 |
-| [005](005-widget-first-philosophy.md) | Widget-First Philosophy | Accepted | 2026-06-16 |
-| [006](006-agent-driven-sdlc.md) | Agent-Driven SDLC | Accepted | 2026-05-28 |
-| [007](007-prisma-over-raw-sql.md) | Prisma ORM With Migrations | Accepted | 2026-05-28 |
-| [008](008-redux-toolkit-state.md) | Redux Toolkit + Redux Persist for State Management | Accepted | 2026-05-28 |
-| [009](009-github-api-over-cli.md) | GitHub REST API Over gh CLI | Accepted | 2026-06-17 |
-| [010](010-phase-resequencing.md) | Phase Resequencing -- Vision Before Quality Gates | Accepted | 2026-07-07 |
+| ADR | Summary | Status | Date |
+|-----|---------|--------|------|
+| [001](001-monorepo-structure.md) | Why Yarn Workspaces + Turbo monorepo over separate repos | Accepted | 2026-05-28 |
+| [002](002-expo-over-bare-rn.md) | Why Expo + EAS Build over bare React Native + manual builds | Accepted | 2026-05-28 |
+| [003](003-cng-adoption.md) | Why Continuous Native Generation (gitignore ios/android, use config plugins) | Accepted | 2026-06-16 |
+| [004](004-compassionate-streaks.md) | Why compassionate streak design over punitive (Finch/Duolingo model) | Accepted | 2026-06-16 |
+| [005](005-widget-first-philosophy.md) | Why widgets + Watch are core product, not polish features | Accepted | 2026-06-16 |
+| [006](006-agent-driven-sdlc.md) | Why Claude Code agents for development (architect, mobile, QA, etc.) | Accepted | 2026-05-28 |
+| [007](007-prisma-over-raw-sql.md) | Why Prisma ORM with migrations over raw SQL or other ORMs | Accepted | 2026-05-28 |
+| [008](008-redux-toolkit-state.md) | Why Redux Toolkit + Persist over alternatives (Zustand, MobX, Context) | Accepted | 2026-05-28 |
+| [009](009-github-api-over-cli.md) | Why GitHub REST API with PAT over gh CLI for PR management | Accepted | 2026-06-17 |
+| [010](010-phase-resequencing.md) | Why widgets pulled forward from Phase 5 to Phase 4A | Accepted | 2026-07-07 |
 
 ## How to Read These
 

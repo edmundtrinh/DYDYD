@@ -30,7 +30,7 @@ Treat home screen widgets and Apple Watch as **core product features** -- not de
 - **Re-engagement without app launch.** Users interact with DYDYD from the home screen, reducing friction to zero. Industry data shows apps with interactive widgets see 12-18% lifts in re-engagement.
 - **"Replace the homescreen" narrative.** The large widget with progress rings, streak, and next quest makes the case that DYDYD is a homescreen experience, not just another app in a folder. This is the marketing story and the product thesis.
 - **Daily habit reinforcement.** Seeing quest status on every home screen glance creates ambient awareness of daily goals, reinforcing the habit loop without requiring deliberate app opens.
-- **Apple Watch synergy.** Treating the Watch companion as a core feature (ADR-005 + Q8 decision) creates a complete ecosystem: phone homescreen + wrist + charging nightstand.
+- **Apple Watch synergy.** Treating the Watch companion as a core feature (Q8 decision) creates a complete ecosystem: phone homescreen + wrist + charging nightstand.
 
 ### What becomes harder
 
