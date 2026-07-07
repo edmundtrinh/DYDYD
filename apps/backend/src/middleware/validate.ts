@@ -1,33 +1,51 @@
-import { Request, Response, NextFunction } from 'express';
-import { validationResult, ValidationChain } from 'express-validator';
+import { Context, Next } from 'hono';
+import { ZodSchema, ZodError } from 'zod';
 import { Errors } from './errorHandler';
 
-/**
- * Validation middleware factory
- * Runs validations and returns errors if any
- */
-export const validate = (validations: ValidationChain[]) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    // Run all validations
-    await Promise.all(validations.map(validation => validation.run(req)));
-
-    const errors = validationResult(req);
-    if (errors.isEmpty()) {
-      return next();
-    }
-
-    // Format errors
-    const formattedErrors: Record<string, string[]> = {};
-    errors.array().forEach((error) => {
-      if (error.type === 'field') {
-        const field = error.path;
-        if (!formattedErrors[field]) {
-          formattedErrors[field] = [];
-        }
-        formattedErrors[field].push(error.msg);
+export const validateBody = (schema: ZodSchema) => {
+  return async (c: Context, next: Next) => {
+    try {
+      const body = await c.req.json();
+      const parsed = schema.parse(body);
+      c.set('validatedBody', parsed);
+      await next();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        const formattedErrors: Record<string, string[]> = {};
+        err.errors.forEach((e) => {
+          const field = e.path.join('.');
+          if (!formattedErrors[field]) {
+            formattedErrors[field] = [];
+          }
+          formattedErrors[field].push(e.message);
+        });
+        throw Errors.validationError(formattedErrors);
       }
-    });
+      throw err;
+    }
+  };
+};
 
-    next(Errors.validationError(formattedErrors));
+export const validateQuery = (schema: ZodSchema) => {
+  return async (c: Context, next: Next) => {
+    try {
+      const query = c.req.query();
+      const parsed = schema.parse(query);
+      c.set('validatedQuery', parsed);
+      await next();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        const formattedErrors: Record<string, string[]> = {};
+        err.errors.forEach((e) => {
+          const field = e.path.join('.');
+          if (!formattedErrors[field]) {
+            formattedErrors[field] = [];
+          }
+          formattedErrors[field].push(e.message);
+        });
+        throw Errors.validationError(formattedErrors);
+      }
+      throw err;
+    }
   };
 };

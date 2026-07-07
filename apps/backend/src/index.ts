@@ -1,12 +1,12 @@
-import express, { Express, Request, Response } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
+import { logger } from 'hono/logger';
+import { compress } from 'hono/compress';
 import dotenv from 'dotenv';
 
-import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { errorHandler } from './middleware/errorHandler';
+import { rateLimiter } from './middleware/rateLimit';
 import authRoutes from './routes/auth';
 import questRoutes from './routes/quests';
 import userRoutes from './routes/user';
@@ -15,42 +15,37 @@ import badgeRoutes from './routes/badges';
 import notificationRoutes from './routes/notifications';
 import healthRoutes from './routes/health';
 
-// Load environment variables
 dotenv.config();
 
-const app: Express = express();
-const PORT = process.env.PORT || 3000;
+const app = new Hono();
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
+// Security
+app.use('*', secureHeaders());
+app.use('*', cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true,
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: { error: 'Too many requests, please try again later.' },
-});
-app.use('/api/', limiter);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Rate limiting on API routes
+app.use('/api/*', rateLimiter(15 * 60 * 1000, 100));
 
 // Compression
-app.use(compression() as any);
+app.use('*', compress());
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan('combined'));
+  app.use('*', logger());
 }
 
-// Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({
+// Global error handler
+app.onError((err, c) => {
+  return errorHandler(err, c);
+});
+
+// Health check
+app.get('/health', (c) => {
+  return c.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
@@ -58,24 +53,36 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/quests', questRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/progress', progressRoutes);
-app.use('/api/badges', badgeRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/health', healthRoutes);
+app.route('/api/auth', authRoutes);
+app.route('/api/quests', questRoutes);
+app.route('/api/user', userRoutes);
+app.route('/api/progress', progressRoutes);
+app.route('/api/badges', badgeRoutes);
+app.route('/api/notifications', notificationRoutes);
+app.route('/api/health', healthRoutes);
 
-// Error handling
-app.use(notFoundHandler);
-app.use(errorHandler);
+// 404 handler
+app.notFound((c) => {
+  return c.json({
+    success: false,
+    error: { code: 'NOT_FOUND', message: 'Endpoint not found' },
+  }, 404);
+});
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`🚀 DYDYD Backend running on port ${PORT}`);
-    console.log(`📍 Health check: http://localhost:${PORT}/health`);
-  });
+  const isBun = typeof globalThis.Bun !== 'undefined';
+  if (isBun) {
+    Bun.serve({ fetch: app.fetch, port: PORT });
+    console.log(`DYDYD Backend running on port ${PORT} (Bun)`);
+  } else {
+    import('@hono/node-server').then(({ serve }) => {
+      serve({ fetch: app.fetch, port: PORT }, () => {
+        console.log(`DYDYD Backend running on port ${PORT} (Node.js)`);
+      });
+    });
+  }
+  console.log(`Health check: http://localhost:${PORT}/health`);
 }
 
 export default app;

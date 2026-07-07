@@ -1,5 +1,4 @@
-import express from 'express';
-import request from 'supertest';
+import { Hono } from 'hono';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import healthRoutes from '../../routes/health';
@@ -21,10 +20,9 @@ jest.mock('../../lib/prisma', () => ({
   },
 }));
 
-const app = express();
-app.use(express.json());
-app.use('/api/health', healthRoutes);
-app.use(errorHandler);
+const app = new Hono();
+app.route('/api/health', healthRoutes);
+app.onError((err, c) => errorHandler(err, c));
 
 const USER_UUID = '00000000-0000-4000-a000-000000000100';
 const UQ_STEPS_UUID = '00000000-0000-4000-a000-000000000010';
@@ -106,15 +104,20 @@ describe('POST /api/health/sync', () => {
     (prisma.userQuest.update as jest.Mock).mockResolvedValue({});
     (prisma.user.update as jest.Mock).mockResolvedValue({});
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [validMetric] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.questsAutoCompleted).toContain(UQ_STEPS_UUID);
-    expect(res.body.data.xpEarned).toBe(5);
+    expect(body.success).toBe(true);
+    expect(body.data.questsAutoCompleted).toContain(UQ_STEPS_UUID);
+    expect(body.data.xpEarned).toBe(5);
     expect(prisma.questCompletion.create).toHaveBeenCalledTimes(1);
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: USER_UUID },
@@ -125,16 +128,21 @@ describe('POST /api/health/sync', () => {
   it('should not complete quest when target value is not met', async () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([mockStepsUserQuest]);
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         metrics: [{ ...validMetric, value: 5000 }],
-      });
+      }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.questsAutoCompleted).toHaveLength(0);
-    expect(res.body.data.xpEarned).toBe(0);
+    expect(body.data.questsAutoCompleted).toHaveLength(0);
+    expect(body.data.xpEarned).toBe(0);
     expect(prisma.questCompletion.create).not.toHaveBeenCalled();
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
@@ -143,13 +151,18 @@ describe('POST /api/health/sync', () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([mockStepsUserQuest]);
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(1);
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [validMetric] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.questsAutoCompleted).toHaveLength(0);
+    expect(body.data.questsAutoCompleted).toHaveLength(0);
     expect(prisma.questCompletion.create).not.toHaveBeenCalled();
   });
 
@@ -163,10 +176,13 @@ describe('POST /api/health/sync', () => {
     (prisma.userQuest.update as jest.Mock).mockResolvedValue({});
     (prisma.user.update as jest.Mock).mockResolvedValue({});
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         metrics: [
           validMetric,
           {
@@ -176,11 +192,13 @@ describe('POST /api/health/sync', () => {
             timestamp: '2024-06-18T08:00:00.000Z',
           },
         ],
-      });
+      }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.questsAutoCompleted).toHaveLength(2);
-    expect(res.body.data.xpEarned).toBe(8);
+    expect(body.data.questsAutoCompleted).toHaveLength(2);
+    expect(body.data.xpEarned).toBe(8);
     expect(prisma.questCompletion.create).toHaveBeenCalledTimes(2);
   });
 
@@ -192,13 +210,18 @@ describe('POST /api/health/sync', () => {
     (prisma.userQuest.update as jest.Mock).mockResolvedValue({});
     (prisma.user.update as jest.Mock).mockResolvedValue({});
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [validMetric] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.xpEarned).toBe(10);
+    expect(body.data.xpEarned).toBe(10);
     expect(prisma.questCompletion.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ xpEarned: 10 }),
@@ -209,26 +232,36 @@ describe('POST /api/health/sync', () => {
   it('should return empty results when no quests match metrics', async () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([mockSleepUserQuest]);
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [validMetric] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.questsAutoCompleted).toHaveLength(0);
-    expect(res.body.data.xpEarned).toBe(0);
+    expect(body.data.questsAutoCompleted).toHaveLength(0);
+    expect(body.data.xpEarned).toBe(0);
   });
 
   it('should return empty results when user has no health-linked quests', async () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [validMetric] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.questsAutoCompleted).toHaveLength(0);
+    expect(body.data.questsAutoCompleted).toHaveLength(0);
   });
 
   it('should update streak and totalCompletions on user quest', async () => {
@@ -238,10 +271,14 @@ describe('POST /api/health/sync', () => {
     (prisma.userQuest.update as jest.Mock).mockResolvedValue({});
     (prisma.user.update as jest.Mock).mockResolvedValue({});
 
-    await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [validMetric] });
+    await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
 
     expect(prisma.userQuest.update).toHaveBeenCalledWith({
       where: { id: UQ_STEPS_UUID },
@@ -255,85 +292,118 @@ describe('POST /api/health/sync', () => {
   it('should include metric data points in response', async () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [validMetric] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
+    const body = await res.json() as any;
 
-    expect(res.body.data.dataPoints).toHaveLength(1);
-    expect(res.body.data.dataPoints[0].type).toBe('steps');
-    expect(res.body.data.dataPoints[0].value).toBe(12000);
-    expect(res.body.data.dataPoints[0].source).toBe('apple_health');
+    expect(body.data.dataPoints).toHaveLength(1);
+    expect(body.data.dataPoints[0].type).toBe('steps');
+    expect(body.data.dataPoints[0].value).toBe(12000);
+    expect(body.data.dataPoints[0].source).toBe('apple_health');
   });
 
   // Validation tests
   it('should return 422 when metrics array is empty', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: [] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [] }),
+    });
 
     expect(res.status).toBe(422);
   });
 
   it('should return 422 when metrics is not an array', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ metrics: 'not-array' });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: 'not-array' }),
+    });
 
     expect(res.status).toBe(422);
   });
 
   it('should return 422 when metric type is invalid', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         metrics: [{ ...validMetric, type: 'invalid_type' }],
-      });
+      }),
+    });
 
     expect(res.status).toBe(422);
   });
 
   it('should return 422 when metric value is not numeric', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         metrics: [{ ...validMetric, value: 'not-a-number' }],
-      });
+      }),
+    });
 
     expect(res.status).toBe(422);
   });
 
   it('should return 422 when metric source is invalid', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         metrics: [{ ...validMetric, source: 'fitbit' }],
-      });
+      }),
+    });
 
     expect(res.status).toBe(422);
   });
 
   it('should return 422 when timestamp is not ISO 8601', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         metrics: [{ ...validMetric, timestamp: 'yesterday' }],
-      });
+      }),
+    });
 
     expect(res.status).toBe(422);
   });
 
   it('should return 422 when metrics field is missing', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({});
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
 
     expect(res.status).toBe(422);
   });
@@ -348,17 +418,21 @@ describe('POST /api/health/sync', () => {
     ];
 
     for (const type of validTypes) {
-      const res = await request(app)
-        .post('/api/health/sync')
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({
+      const res = await app.request('/api/health/sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${validToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           metrics: [{
             type,
             value: 100,
             source: 'manual',
             timestamp: '2024-06-18T12:00:00.000Z',
           }],
-        });
+        }),
+      });
 
       expect(res.status).toBe(200);
     }
@@ -373,26 +447,34 @@ describe('POST /api/health/sync', () => {
     ];
 
     for (const source of validSources) {
-      const res = await request(app)
-        .post('/api/health/sync')
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({
+      const res = await app.request('/api/health/sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${validToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           metrics: [{
             type: 'steps',
             value: 100,
             source,
             timestamp: '2024-06-18T12:00:00.000Z',
           }],
-        });
+        }),
+      });
 
       expect(res.status).toBe(200);
     }
   });
 
   it('should return 401 when not authenticated', async () => {
-    const res = await request(app)
-      .post('/api/health/sync')
-      .send({ metrics: [validMetric] });
+    const res = await app.request('/api/health/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ metrics: [validMetric] }),
+    });
 
     expect(res.status).toBe(401);
   });

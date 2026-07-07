@@ -1,336 +1,268 @@
-import { Router, Request, Response, NextFunction, IRouter } from 'express';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { body } from 'express-validator';
-import { validate } from '../middleware/validate';
-import { authenticate } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { authenticate, AuthEnv } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { ApiResponse, CategoryPriority, UserSettings } from '@dydyd/shared';
 
-const router: IRouter = Router();
+const app = new Hono<AuthEnv>();
+
+// --- Zod schemas ---
+
+const profileUpdateSchema = z.object({
+  displayName: z.string().min(2).max(50).optional(),
+  avatarUrl: z.string().url().optional(),
+});
+
+const settingsUpdateSchema = z.object({
+  notificationsEnabled: z.boolean().optional(),
+  dailyReminderTime: z
+    .string()
+    .regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Daily reminder time must be in HH:mm format')
+    .optional(),
+  weeklyResetDay: z.number().int().min(0).max(6).optional(),
+  timezone: z.string().optional(),
+  theme: z.enum(['light', 'dark', 'system']).optional(),
+  soundEnabled: z.boolean().optional(),
+  hapticFeedbackEnabled: z.boolean().optional(),
+});
+
+const categoryPrioritiesSchema = z.object({
+  priorities: z.array(
+    z.object({
+      category: z.enum([
+        'physical_health',
+        'mental_wellness',
+        'career_productivity',
+        'relationships_social',
+        'home_chores',
+      ]),
+      priority: z.number().int().min(1).max(5),
+      isEnabled: z.boolean(),
+    }),
+  ),
+});
+
+const deleteAccountSchema = z.object({
+  password: z.string().min(1),
+});
 
 /**
  * GET /api/user/profile
  * Get current user's profile
  */
-router.get(
-  '/profile',
-  authenticate,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.userId! },
-        include: {
-          settings: true,
-          categoryPriorities: true,
-        },
-      });
+app.get('/profile', authenticate, async (c) => {
+  const userId = c.get('userId');
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      settings: true,
+      categoryPriorities: true,
+    },
+  });
 
-      if (!user) {
-        throw Errors.notFound('User');
-      }
-
-      // Remove password from response
-      const { password, ...userWithoutPassword } = user;
-
-      const response: ApiResponse<Omit<typeof user, 'password'>> = {
-        success: true,
-        data: userWithoutPassword,
-      };
-
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
+  if (!user) {
+    throw Errors.notFound('User');
   }
-);
+
+  // Remove password from response
+  const { password: _password, ...userWithoutPassword } = user;
+
+  const response: ApiResponse<Omit<typeof user, 'password'>> = {
+    success: true,
+    data: userWithoutPassword,
+  };
+
+  return c.json(response);
+});
 
 /**
  * PUT /api/user/profile
  * Update current user's profile
  */
-router.put(
-  '/profile',
-  authenticate,
-  validate([
-    body('displayName')
-      .optional()
-      .trim()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Display name must be between 2 and 50 characters'),
-    body('avatarUrl')
-      .optional()
-      .isURL()
-      .withMessage('Avatar URL must be a valid URL'),
-  ]),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { displayName, avatarUrl } = req.body;
+app.put('/profile', authenticate, validateBody(profileUpdateSchema), async (c) => {
+  const { displayName, avatarUrl } = await c.req.json();
 
-      const updateData: Record<string, any> = {};
-      if (displayName !== undefined) updateData.displayName = displayName;
-      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+  const updateData: Record<string, any> = {};
+  if (displayName !== undefined) updateData.displayName = displayName;
+  if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
 
-      const user = await prisma.user.update({
-        where: { id: req.userId! },
-        data: updateData,
-        include: {
-          settings: true,
-          categoryPriorities: true,
-        },
-      });
+  const userId = c.get('userId');
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    include: {
+      settings: true,
+      categoryPriorities: true,
+    },
+  });
 
-      const { password, ...userWithoutPassword } = user;
+  const { password: _password2, ...userWithoutPassword } = user;
 
-      const response: ApiResponse<Omit<typeof user, 'password'>> = {
-        success: true,
-        data: userWithoutPassword,
-      };
+  const response: ApiResponse<Omit<typeof user, 'password'>> = {
+    success: true,
+    data: userWithoutPassword,
+  };
 
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+  return c.json(response);
+});
 
 /**
  * GET /api/user/settings
  * Get current user's settings
  */
-router.get(
-  '/settings',
-  authenticate,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const settings = await prisma.userSettings.findUnique({
-        where: { userId: req.userId! },
-      });
+app.get('/settings', authenticate, async (c) => {
+  const userId = c.get('userId');
+  const settings = await prisma.userSettings.findUnique({
+    where: { userId },
+  });
 
-      if (!settings) {
-        throw Errors.notFound('Settings');
-      }
-
-      const response: ApiResponse<UserSettings> = {
-        success: true,
-        data: settings as unknown as UserSettings,
-      };
-
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
+  if (!settings) {
+    throw Errors.notFound('Settings');
   }
-);
+
+  const response: ApiResponse<UserSettings> = {
+    success: true,
+    data: settings as unknown as UserSettings,
+  };
+
+  return c.json(response);
+});
 
 /**
  * PUT /api/user/settings
  * Update current user's settings
  */
-router.put(
-  '/settings',
-  authenticate,
-  validate([
-    body('notificationsEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('notificationsEnabled must be a boolean'),
-    body('dailyReminderTime')
-      .optional()
-      .matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)
-      .withMessage('Daily reminder time must be in HH:mm format'),
-    body('weeklyResetDay')
-      .optional()
-      .isInt({ min: 0, max: 6 })
-      .withMessage('Weekly reset day must be between 0 (Sunday) and 6 (Saturday)'),
-    body('timezone')
-      .optional()
-      .isString()
-      .withMessage('Timezone must be a string'),
-    body('theme')
-      .optional()
-      .isIn(['light', 'dark', 'system'])
-      .withMessage('Theme must be light, dark, or system'),
-    body('soundEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('soundEnabled must be a boolean'),
-    body('hapticFeedbackEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('hapticFeedbackEnabled must be a boolean'),
-  ]),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const {
-        notificationsEnabled,
-        dailyReminderTime,
-        weeklyResetDay,
-        timezone,
-        theme,
-        soundEnabled,
-        hapticFeedbackEnabled,
-      } = req.body;
+app.put('/settings', authenticate, validateBody(settingsUpdateSchema), async (c) => {
+  const {
+    notificationsEnabled,
+    dailyReminderTime,
+    weeklyResetDay,
+    timezone,
+    theme,
+    soundEnabled,
+    hapticFeedbackEnabled,
+  } = await c.req.json();
 
-      const updateData: Record<string, any> = {};
-      if (notificationsEnabled !== undefined) updateData.notificationsEnabled = notificationsEnabled;
-      if (dailyReminderTime !== undefined) updateData.dailyReminderTime = dailyReminderTime;
-      if (weeklyResetDay !== undefined) updateData.weeklyResetDay = weeklyResetDay;
-      if (timezone !== undefined) updateData.timezone = timezone;
-      if (theme !== undefined) updateData.theme = theme;
-      if (soundEnabled !== undefined) updateData.soundEnabled = soundEnabled;
-      if (hapticFeedbackEnabled !== undefined) updateData.hapticFeedbackEnabled = hapticFeedbackEnabled;
+  const updateData: Record<string, any> = {};
+  if (notificationsEnabled !== undefined) updateData.notificationsEnabled = notificationsEnabled;
+  if (dailyReminderTime !== undefined) updateData.dailyReminderTime = dailyReminderTime;
+  if (weeklyResetDay !== undefined) updateData.weeklyResetDay = weeklyResetDay;
+  if (timezone !== undefined) updateData.timezone = timezone;
+  if (theme !== undefined) updateData.theme = theme;
+  if (soundEnabled !== undefined) updateData.soundEnabled = soundEnabled;
+  if (hapticFeedbackEnabled !== undefined) updateData.hapticFeedbackEnabled = hapticFeedbackEnabled;
 
-      const settings = await prisma.userSettings.update({
-        where: { userId: req.userId! },
-        data: updateData,
-      });
+  const userId = c.get('userId');
+  const settings = await prisma.userSettings.update({
+    where: { userId },
+    data: updateData,
+  });
 
-      const response: ApiResponse<UserSettings> = {
-        success: true,
-        data: settings as unknown as UserSettings,
-      };
+  const response: ApiResponse<UserSettings> = {
+    success: true,
+    data: settings as unknown as UserSettings,
+  };
 
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+  return c.json(response);
+});
 
 /**
  * GET /api/user/category-priorities
  * Get user's category priorities
  */
-router.get(
-  '/category-priorities',
-  authenticate,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const priorities = await prisma.categoryPriority.findMany({
-        where: { userId: req.userId! },
-        orderBy: { priority: 'desc' },
-      });
+app.get('/category-priorities', authenticate, async (c) => {
+  const userId = c.get('userId');
+  const priorities = await prisma.categoryPriority.findMany({
+    where: { userId },
+    orderBy: { priority: 'desc' },
+  });
 
-      const response: ApiResponse<CategoryPriority[]> = {
-        success: true,
-        data: priorities as CategoryPriority[],
-      };
+  const response: ApiResponse<CategoryPriority[]> = {
+    success: true,
+    data: priorities as CategoryPriority[],
+  };
 
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+  return c.json(response);
+});
 
 /**
  * PUT /api/user/category-priorities
  * Update user's category priorities
  */
-router.put(
-  '/category-priorities',
-  authenticate,
-  validate([
-    body('priorities')
-      .isArray()
-      .withMessage('Priorities must be an array'),
-    body('priorities.*.category')
-      .isIn(['physical_health', 'mental_wellness', 'career_productivity', 'relationships_social', 'home_chores'])
-      .withMessage('Invalid category'),
-    body('priorities.*.priority')
-      .isInt({ min: 1, max: 5 })
-      .withMessage('Priority must be between 1 and 5'),
-    body('priorities.*.isEnabled')
-      .isBoolean()
-      .withMessage('isEnabled must be a boolean'),
-  ]),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { priorities } = req.body;
+app.put('/category-priorities', authenticate, validateBody(categoryPrioritiesSchema), async (c) => {
+  const { priorities } = await c.req.json();
 
-      // Delete existing priorities and create new ones
-      await prisma.$transaction([
-        prisma.categoryPriority.deleteMany({
-          where: { userId: req.userId! },
-        }),
-        prisma.categoryPriority.createMany({
-          data: priorities.map((p: CategoryPriority) => ({
-            userId: req.userId!,
-            category: p.category,
-            priority: p.priority,
-            isEnabled: p.isEnabled,
-          })),
-        }),
-      ]);
+  const userId = c.get('userId');
+  // Delete existing priorities and create new ones
+  await prisma.$transaction([
+    prisma.categoryPriority.deleteMany({
+      where: { userId },
+    }),
+    prisma.categoryPriority.createMany({
+      data: priorities.map((p: CategoryPriority) => ({
+        userId,
+        category: p.category,
+        priority: p.priority,
+        isEnabled: p.isEnabled,
+      })),
+    }),
+  ]);
 
-      const updatedPriorities = await prisma.categoryPriority.findMany({
-        where: { userId: req.userId! },
-        orderBy: { priority: 'desc' },
-      });
+  const updatedPriorities = await prisma.categoryPriority.findMany({
+    where: { userId },
+    orderBy: { priority: 'desc' },
+  });
 
-      const response: ApiResponse<CategoryPriority[]> = {
-        success: true,
-        data: updatedPriorities as CategoryPriority[],
-      };
+  const response: ApiResponse<CategoryPriority[]> = {
+    success: true,
+    data: updatedPriorities as CategoryPriority[],
+  };
 
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+  return c.json(response);
+});
 
 /**
  * DELETE /api/user/account
  * Delete user account and all associated data
  */
-router.delete(
-  '/account',
-  authenticate,
-  validate([
-    body('password').notEmpty().withMessage('Password confirmation required'),
-  ]),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const userId = req.userId!;
-      const { password } = req.body;
+app.delete('/account', authenticate, validateBody(deleteAccountSchema), async (c) => {
+  const userId = c.get('userId');
+  const { password } = await c.req.json();
 
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (!user) {
-        throw Errors.notFound('User not found');
-      }
-
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        throw Errors.unauthorized('Incorrect password');
-      }
-
-      await prisma.$transaction([
-        // QuestCompletion links to UserQuest, not User directly — delete via userQuest relation
-        prisma.questCompletion.deleteMany({
-          where: { userQuest: { userId } },
-        }),
-        prisma.userQuest.deleteMany({ where: { userId } }),
-        prisma.userBadge.deleteMany({ where: { userId } }),
-        prisma.notification.deleteMany({ where: { userId } }),
-        prisma.deviceToken.deleteMany({ where: { userId } }),
-        prisma.refreshToken.deleteMany({ where: { userId } }),
-        prisma.categoryPriority.deleteMany({ where: { userId } }),
-        prisma.userSettings.deleteMany({ where: { userId } }),
-        prisma.user.delete({ where: { id: userId } }),
-      ]);
-
-      const response: ApiResponse<{ deleted: true }> = {
-        success: true,
-        data: { deleted: true },
-      };
-
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw Errors.notFound('User not found');
   }
-);
 
-export default router;
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) {
+    throw Errors.unauthorized('Incorrect password');
+  }
+
+  await prisma.$transaction([
+    // QuestCompletion links to UserQuest, not User directly — delete via userQuest relation
+    prisma.questCompletion.deleteMany({
+      where: { userQuest: { userId } },
+    }),
+    prisma.userQuest.deleteMany({ where: { userId } }),
+    prisma.userBadge.deleteMany({ where: { userId } }),
+    prisma.notification.deleteMany({ where: { userId } }),
+    prisma.deviceToken.deleteMany({ where: { userId } }),
+    prisma.refreshToken.deleteMany({ where: { userId } }),
+    prisma.categoryPriority.deleteMany({ where: { userId } }),
+    prisma.userSettings.deleteMany({ where: { userId } }),
+    prisma.user.delete({ where: { id: userId } }),
+  ]);
+
+  const response: ApiResponse<{ deleted: true }> = {
+    success: true,
+    data: { deleted: true },
+  };
+
+  return c.json(response);
+});
+
+export default app;

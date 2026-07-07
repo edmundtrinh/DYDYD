@@ -1,7 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Context } from 'hono';
 import { ApiError } from '@dydyd/shared';
 
-// Custom error class for API errors
 export class AppError extends Error {
   statusCode: number;
   code: string;
@@ -21,7 +20,6 @@ export class AppError extends Error {
   }
 }
 
-// Common error factory functions
 export const Errors = {
   badRequest: (message: string, details?: Record<string, unknown>) =>
     new AppError(message, 400, 'BAD_REQUEST', details),
@@ -48,24 +46,11 @@ export const Errors = {
     new AppError(message, 500, 'INTERNAL_ERROR'),
 };
 
-// 404 Not Found handler
-export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-  next(Errors.notFound('Endpoint'));
-};
-
-// Global error handler
-export const errorHandler = (
-  err: Error | AppError,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  // Log error in development
+export const errorHandler = (err: Error, c: Context) => {
   if (process.env.NODE_ENV === 'development') {
     console.error('Error:', err);
   }
 
-  // Handle AppError
   if (err instanceof AppError) {
     const errorResponse: { success: false; error: ApiError } = {
       success: false,
@@ -75,45 +60,24 @@ export const errorHandler = (
         details: err.details,
       },
     };
-
-    return res.status(err.statusCode).json(errorResponse);
+    return c.json(errorResponse, err.statusCode as any);
   }
 
-  // Handle validation errors from express-validator
-  if (err.name === 'ValidationError') {
-    return res.status(422).json({
-      success: false,
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Validation failed',
-        details: err,
-      },
-    });
-  }
-
-  // Handle JWT errors
   if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({
+    return c.json({
       success: false,
-      error: {
-        code: 'INVALID_TOKEN',
-        message: 'Invalid token',
-      },
-    });
+      error: { code: 'INVALID_TOKEN', message: 'Invalid token' },
+    }, 401);
   }
 
   if (err.name === 'TokenExpiredError') {
-    return res.status(401).json({
+    return c.json({
       success: false,
-      error: {
-        code: 'TOKEN_EXPIRED',
-        message: 'Token has expired',
-      },
-    });
+      error: { code: 'TOKEN_EXPIRED', message: 'Token has expired' },
+    }, 401);
   }
 
-  // Default to 500 Internal Server Error
-  return res.status(500).json({
+  return c.json({
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
@@ -121,5 +85,5 @@ export const errorHandler = (
         ? 'Internal server error'
         : err.message,
     },
-  });
+  }, 500);
 };

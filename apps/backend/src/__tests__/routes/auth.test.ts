@@ -1,5 +1,4 @@
-import express from 'express';
-import request from 'supertest';
+import { Hono } from 'hono';
 import { mockPrisma } from '../helpers/prisma';
 
 // Module-level mocks — must be declared before any imports that consume them.
@@ -18,19 +17,18 @@ jest.mock('bcryptjs', () => ({
 }));
 
 // Import after mocks are registered so the route module picks up mocked deps.
-import authRouter from '../../routes/auth';
+import authRoutes from '../../routes/auth';
 import { errorHandler } from '../../middleware/errorHandler';
 import { generateAccessToken, generateRefreshToken } from '../../middleware/auth';
 
 // ---------------------------------------------------------------------------
-// Test app — one isolated Express instance per suite, only the route under
+// Test app — one isolated Hono instance per suite, only the route under
 // test + the error handler (mirrors the CLAUDE.md testing pattern).
 // ---------------------------------------------------------------------------
 function buildApp() {
-  const app = express();
-  app.use(express.json());
-  app.use('/', authRouter);
-  app.use(errorHandler);
+  const app = new Hono();
+  app.route('/api/auth', authRoutes);
+  app.onError((err, c) => errorHandler(err, c));
   return app;
 }
 
@@ -90,33 +88,43 @@ describe('POST /register', () => {
     mockPrisma.user.create.mockResolvedValue(mockUser);
     mockPrisma.refreshToken.create.mockResolvedValue(mockRefreshTokenRecord);
 
-    const res = await request(app).post('/register').send({
-      email: 'new@example.com',
-      password: 'ValidPass1',
-      displayName: 'New User',
+    const res = await app.request('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'new@example.com',
+        password: 'ValidPass1',
+        displayName: 'New User',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty('tokens');
-    expect(res.body.data.tokens).toHaveProperty('accessToken');
-    expect(res.body.data.tokens).toHaveProperty('refreshToken');
-    expect(res.body.data.tokens.expiresIn).toBe(900);
-    expect(res.body.data.user.password).toBeUndefined();
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveProperty('tokens');
+    expect(body.data.tokens).toHaveProperty('accessToken');
+    expect(body.data.tokens).toHaveProperty('refreshToken');
+    expect(body.data.tokens.expiresIn).toBe(900);
+    expect(body.data.user.password).toBeUndefined();
   });
 
   it('should return 409 when email is already registered', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-    const res = await request(app).post('/register').send({
-      email: 'existing@example.com',
-      password: 'ValidPass1',
-      displayName: 'Existing User',
+    const res = await app.request('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'existing@example.com',
+        password: 'ValidPass1',
+        displayName: 'Existing User',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(409);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('CONFLICT');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('CONFLICT');
   });
 
   it.each([
@@ -144,11 +152,17 @@ describe('POST /register', () => {
       'displayName is missing',
       { email: 'test@example.com', password: 'ValidPass1' },
     ],
-  ])('should return 422 when %s', async (_label, body) => {
-    const res = await request(app).post('/register').send(body);
+  ])('should return 422 when %s', async (_label, payload) => {
+    const res = await app.request('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json() as any;
+
     expect(res.status).toBe(422);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 });
 
@@ -161,53 +175,74 @@ describe('POST /login', () => {
     mockBcrypt.compare.mockResolvedValue(true);
     mockPrisma.refreshToken.create.mockResolvedValue(mockRefreshTokenRecord);
 
-    const res = await request(app).post('/login').send({
-      email: USER_EMAIL,
-      password: 'ValidPass1',
+    const res = await app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: USER_EMAIL,
+        password: 'ValidPass1',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.tokens).toHaveProperty('accessToken');
-    expect(res.body.data.user.password).toBeUndefined();
+    expect(body.success).toBe(true);
+    expect(body.data.tokens).toHaveProperty('accessToken');
+    expect(body.data.user.password).toBeUndefined();
   });
 
   it('should return 401 when user does not exist', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
 
-    const res = await request(app).post('/login').send({
-      email: 'unknown@example.com',
-      password: 'ValidPass1',
+    const res = await app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'unknown@example.com',
+        password: 'ValidPass1',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('UNAUTHORIZED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
   it('should return 401 when password is wrong', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(mockUser);
     mockBcrypt.compare.mockResolvedValue(false);
 
-    const res = await request(app).post('/login').send({
-      email: USER_EMAIL,
-      password: 'WrongPassword1',
+    const res = await app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: USER_EMAIL,
+        password: 'WrongPassword1',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('UNAUTHORIZED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
   it.each([
     ['email is invalid', { email: 'bad-email', password: 'somepass' }],
     ['email is missing', { password: 'somepass' }],
     ['password is missing', { email: USER_EMAIL }],
-  ])('should return 422 when %s', async (_label, body) => {
-    const res = await request(app).post('/login').send(body);
+  ])('should return 422 when %s', async (_label, payload) => {
+    const res = await app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json() as any;
+
     expect(res.status).toBe(422);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 });
 
@@ -225,38 +260,53 @@ describe('POST /refresh-token', () => {
     mockPrisma.user.findUnique.mockResolvedValue(mockUser);
     mockPrisma.$transaction.mockResolvedValue([]);
 
-    const res = await request(app).post('/refresh-token').send({
-      refreshToken: realRefreshToken,
+    const res = await app.request('/api/auth/refresh-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: realRefreshToken,
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty('accessToken');
-    expect(res.body.data).toHaveProperty('refreshToken');
-    expect(res.body.data.expiresIn).toBe(900);
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveProperty('accessToken');
+    expect(body.data).toHaveProperty('refreshToken');
+    expect(body.data.expiresIn).toBe(900);
   });
 
   it('should return 401 when the refresh token is an invalid string', async () => {
-    const res = await request(app).post('/refresh-token').send({
-      refreshToken: 'this.is.not.a.valid.jwt',
+    const res = await app.request('/api/auth/refresh-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: 'this.is.not.a.valid.jwt',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('UNAUTHORIZED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
   it('should return 401 when the refresh token is not in the database', async () => {
     const realRefreshToken = generateRefreshToken(USER_ID, USER_EMAIL);
     mockPrisma.refreshToken.findFirst.mockResolvedValue(null);
 
-    const res = await request(app).post('/refresh-token').send({
-      refreshToken: realRefreshToken,
+    const res = await app.request('/api/auth/refresh-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: realRefreshToken,
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('UNAUTHORIZED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
   it('should return 401 when the user referenced in the token no longer exists', async () => {
@@ -268,21 +318,31 @@ describe('POST /refresh-token', () => {
     });
     mockPrisma.user.findUnique.mockResolvedValue(null);
 
-    const res = await request(app).post('/refresh-token').send({
-      refreshToken: realRefreshToken,
+    const res = await app.request('/api/auth/refresh-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refreshToken: realRefreshToken,
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('UNAUTHORIZED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
   it('should return 422 when refreshToken field is missing', async () => {
-    const res = await request(app).post('/refresh-token').send({});
+    const res = await app.request('/api/auth/refresh-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(422);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 });
 
@@ -294,46 +354,66 @@ describe('POST /logout', () => {
     const accessToken = generateAccessToken(USER_ID, USER_EMAIL);
     mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
-    const res = await request(app)
-      .post('/logout')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({ refreshToken: 'some-refresh-token' });
+    const res = await app.request('/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ refreshToken: 'some-refresh-token' }),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.message).toBe('Logged out successfully');
+    expect(body.success).toBe(true);
+    expect(body.data.message).toBe('Logged out successfully');
   });
 
   it('should return 200 and revoke all refresh tokens when none is specified', async () => {
     const accessToken = generateAccessToken(USER_ID, USER_EMAIL);
     mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 3 });
 
-    const res = await request(app)
-      .post('/logout')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({});
+    const res = await app.request('/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({}),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(body.success).toBe(true);
   });
 
   it('should return 401 when no Authorization header is provided', async () => {
-    const res = await request(app).post('/logout').send({});
+    const res = await app.request('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('UNAUTHORIZED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
   it('should return 401 when an invalid Bearer token is provided', async () => {
-    const res = await request(app)
-      .post('/logout')
-      .set('Authorization', 'Bearer invalid.token.here')
-      .send({});
+    const res = await app.request('/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer invalid.token.here',
+      },
+      body: JSON.stringify({}),
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('UNAUTHORIZED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 });
 
@@ -345,39 +425,55 @@ describe('POST /forgot-password', () => {
     mockPrisma.user.findUnique.mockResolvedValue(mockUser);
     mockPrisma.refreshToken.create.mockResolvedValue(mockRefreshTokenRecord);
 
-    const res = await request(app).post('/forgot-password').send({
-      email: USER_EMAIL,
+    const res = await app.request('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: USER_EMAIL,
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.message).toContain('reset');
+    expect(body.success).toBe(true);
+    expect(body.data.message).toContain('reset');
     // Dev-mode: token is returned directly
-    expect(res.body.data).toHaveProperty('resetToken');
+    expect(body.data).toHaveProperty('resetToken');
   });
 
   it('should return 200 with the same message even when the email does not exist', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
 
-    const res = await request(app).post('/forgot-password').send({
-      email: 'unknown@example.com',
+    const res = await app.request('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'unknown@example.com',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.message).toContain('reset');
+    expect(body.success).toBe(true);
+    expect(body.data.message).toContain('reset');
     // Ensure we don't leak whether the email exists
-    expect(res.body.data.resetToken).toBeUndefined();
+    expect(body.data.resetToken).toBeUndefined();
   });
 
   it.each([
     ['email is invalid', { email: 'not-an-email' }],
     ['email is missing', {}],
-  ])('should return 422 when %s', async (_label, body) => {
-    const res = await request(app).post('/forgot-password').send(body);
+  ])('should return 422 when %s', async (_label, payload) => {
+    const res = await app.request('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json() as any;
+
     expect(res.status).toBe(422);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 });
 
@@ -395,27 +491,37 @@ describe('POST /reset-password', () => {
     mockBcrypt.hash.mockResolvedValue('newHashedPassword');
     mockPrisma.$transaction.mockResolvedValue([]);
 
-    const res = await request(app).post('/reset-password').send({
-      token: rawToken,
-      newPassword: 'NewValidPass1',
+    const res = await app.request('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: rawToken,
+        newPassword: 'NewValidPass1',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.message).toContain('reset');
+    expect(body.success).toBe(true);
+    expect(body.data.message).toContain('reset');
   });
 
   it('should return 400 when the token is not found in the database', async () => {
     mockPrisma.refreshToken.findFirst.mockResolvedValue(null);
 
-    const res = await request(app).post('/reset-password').send({
-      token: 'a'.repeat(64),
-      newPassword: 'NewValidPass1',
+    const res = await app.request('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: 'a'.repeat(64),
+        newPassword: 'NewValidPass1',
+      }),
     });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('BAD_REQUEST');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('BAD_REQUEST');
   });
 
   it.each([
@@ -435,10 +541,16 @@ describe('POST /reset-password', () => {
       'newPassword has no digit',
       { token: 'a'.repeat(64), newPassword: 'NoDigitPass' },
     ],
-  ])('should return 422 when %s', async (_label, body) => {
-    const res = await request(app).post('/reset-password').send(body);
+  ])('should return 422 when %s', async (_label, payload) => {
+    const res = await app.request('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json() as any;
+
     expect(res.status).toBe(422);
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 });
