@@ -3,7 +3,7 @@
 > Single source of truth for what's planned, in progress, and complete.
 > Owned by PRODUCT agent. All agents read.
 
-## Current Phase: Phase 3 — Testing & Quality
+## Current Phase: Phase 3A — Merge & Stabilize (then Phase 4A — The Vision)
 
 ---
 
@@ -85,84 +85,82 @@ All features implemented across 13 issues and 13 feature PRs, plus 6 CI fix PRs.
 
 ---
 
-## Phase 3: Testing & Quality (v0.4.0) — CURRENT
+## Phase 3A: Merge & Stabilize (v0.3.1) — COMPLETE
 
 ### Goal
 
-Bring test coverage and infrastructure quality up to store-submission standard. The backend currently has zero tests, mobile has 19 test files covering Phase 1-2 features, and shared has 2 test files (120/120 passing). Several infrastructure gaps (no DB migrations, Android build issues) must also be resolved.
+Unblock main by merging the 10 open PRs from the Phase 3 testing sprint. Backend now has 94+ unit tests across auth, quest, and user routes, plus 7 critical bug fixes.
 
-### Track A — Backend Unit Tests
-
-The backend has 7 route files and zero test coverage. Each route file gets a corresponding test suite.
-
-| Task | Status | Owner |
-|------|--------|-------|
-| Auth route tests (`src/routes/auth.ts`) — register, login, refresh, logout, forgot/reset password | PENDING | ARCHITECT |
-| Quest route tests (`src/routes/quests.ts`) — CRUD, assign, complete, frequency filters | PENDING | ARCHITECT |
-| Health route tests (`src/routes/health.ts`) — sync endpoint, auto-complete | PENDING | ARCHITECT |
-| Progress route tests (`src/routes/progress.ts`) — XP, streaks, level data | PENDING | ARCHITECT |
-| Badge route tests (`src/routes/badges.ts`) — library, user badges, check/award | PENDING | ARCHITECT |
-| User route tests (`src/routes/user.ts`) — profile, settings, account deletion | PENDING | ARCHITECT |
-| Notification route tests (`src/routes/notifications.ts`) — device token, history, mark read | PENDING | ARCHITECT |
-| Middleware tests (`src/middleware/auth.ts`) — JWT validation, expired tokens, missing headers | PENDING | ARCHITECT |
-
-### Track B — Mobile Test Coverage
-
-19 test files exist. Expand coverage to remaining screens and services.
-
-| Task | Status | Owner |
-|------|--------|-------|
-| Audit existing 19 test files for passing status and coverage gaps | PENDING | QA |
-| Auth screens tests (Login, Register, Welcome, ForgotPassword) | PENDING | MOBILE |
-| Onboarding screens tests (CategoryPriority, SelectQuests, OnboardingComplete) | PENDING | MOBILE |
-| Home screen tests (QuestsScreen main view, quest toggling) | PENDING | MOBILE |
-| Profile screen tests (ProfileScreen) | PENDING | MOBILE |
-| Redux slice tests (auth, quests, progress, user, health, notifications, ui) | PENDING | MOBILE |
-| Navigation tests (auth flow, onboarding flow, tab switching) | PENDING | MOBILE |
-
-### Track C — Integration Tests
-
-API route testing with a test database, verifying the full request-response cycle.
-
-| Task | Status | Owner |
-|------|--------|-------|
-| Set up test database configuration (separate test DB, seeding, teardown) | PENDING | ARCHITECT |
-| Auth integration tests (register -> login -> refresh -> logout flow) | PENDING | ARCHITECT |
-| Quest lifecycle integration tests (create -> assign -> complete -> XP award) | PENDING | ARCHITECT |
-| Health sync integration tests (sync -> auto-complete -> XP) | PENDING | ARCHITECT |
-| Badge award integration tests (complete quest -> badge check -> badge earned) | PENDING | ARCHITECT |
-| Account deletion integration tests (delete -> verify cascading cleanup) | PENDING | QA |
-
-### Track D — E2E Framework Setup
-
-Leaning toward **Detox** (founder has macOS for iOS testing). Evaluate both before committing.
-
-| Task | Status | Owner |
-|------|--------|-------|
-| Evaluate Detox vs Maestro hands-on (framework selection) | PENDING | FOUNDER / QA |
-| Install and configure chosen E2E framework | PENDING | QA |
-| Write smoke test suite (auth flow, complete one quest, check XP) | PENDING | QA |
-| Add E2E tests to CI pipeline | PENDING | QA |
-
-### Track E — Infrastructure
-
-| Task | Status | Owner |
-|------|--------|-------|
-| Set up proper Prisma migrations (replace shadow DB with migration history) | PENDING | ARCHITECT |
-| Adopt CNG — gitignore android/ and ios/, move Swift code to Expo config plugins | PENDING | ARCHITECT / MOBILE |
-| Configure EAS Updates (OTA) — expo-updates plugin, eas.json update channels | PENDING | ARCHITECT |
-| Close stale GitHub milestones v0.2.0 and v0.3.0 (all issues closed) | PENDING | PRODUCT |
-| Fix 3 UI bugs (dark mode logic, missing logout button, unwired delete account) | PENDING | MOBILE |
-| Fix Prisma bug (user.ts deleteMany uses wrong column — userId vs userQuestId) | PENDING | ARCHITECT |
-| Performance profiling baseline | PENDING | QA |
-| Security review | PENDING | QA |
-| Accessibility audit | PENDING | QA |
+| Task | PR | Status |
+|------|-----|--------|
+| Fix 7 backend bugs + add 94 unit tests (auth, quests, user) + CLAUDE.md/SKILL.md | #74 | DONE (squash merged) |
+| Prisma initial migration + DB CI validation | #68 | DONE |
+| Backend test infra + auth/user route tests | #65 | DONE (superseded by #74) |
+| Quest route tests | #69 | DONE |
+| Health route tests | #70 | DONE |
+| Progress route tests | #71 | DONE |
+| Badge route tests | #72 | DONE |
+| Notification route tests | #73 | DONE |
+| Settings screen logout + delete account fixes | #66 | DONE |
+| GitHub API workflow docs | #67 | DONE |
 
 ---
 
-## Phase 4: Polish & Platform Features (v0.5.0)
+## Phase 3B: Mobile Tests (v0.3.2)
 
-### Milestone 1 — History Logging MVP
+### Goal
+
+Expand mobile test coverage to auth screens, HomeScreen, quest screens, and all Redux slices.
+
+| Task | Issue | Status | Owner |
+|------|-------|--------|-------|
+| Auth screen tests (Login, Register, Welcome, ForgotPassword) | #57 | PENDING | MOBILE |
+| HomeScreen tests (quest display, completion flow, health sync) | #58 | PENDING | MOBILE |
+| Quest screen tests (QuestDetail, expanded AddQuest, search) | #59 | PENDING | MOBILE |
+| Redux slice tests (all 7 slices: auth, quests, progress, user, health, notifications, ui) | #60 | PENDING | MOBILE |
+
+---
+
+## Phase 4A: The Vision (v0.4.0) — CURRENT PRIORITY
+
+### Strategic Context
+
+> This is why DYDYD exists. The founder's core vision is to **replace the phone homescreen** with an all-in-one habit and routine builder. Widgets and the Watch app are not polish features — they are the product. Compassionate streak design ensures the app meets the user where they are (scatter-brained, procrastination-prone) with encouragement, not guilt.
+>
+> **Industry context:** Apps with interactive widgets see 12-18% lifts in re-engagement. Finch (compassionate gamification) grew to ~$30M ARR. Duolingo's streak mechanics drove 36% YoY DAU growth. The opportunity is to combine proven engagement patterns with genuinely supportive design.
+
+### Milestone 1 — Interactive iOS Widgets
+
+| Task | Notes | Owner |
+|------|-------|-------|
+| Set up `expo-widgets` for iOS home screen widgets | WidgetKit + App Groups, no native Swift required | MOBILE |
+| Small widget: streak count + daily XP progress ring | Glanceable daily status | MOBILE |
+| Medium widget: top 3 daily quests with interactive check buttons | Complete habits without opening the app | MOBILE |
+| Large widget: full daily dashboard with progress rings, streak, next quest | "Replace the homescreen" experience | MOBILE |
+| StandBy Mode support | Full-screen widget display while charging (nightstand dashboard) | MOBILE |
+| Live Activities for active quest timers | Real-time progress during focus sessions | MOBILE |
+
+### Milestone 2 — Apple Watch Companion
+
+| Task | Notes | Owner |
+|------|-------|-------|
+| WatchConnectivity bridge via `react-native-watch-connectivity` | EAS Build bare workflow, bridge RN ↔ WatchOS | MOBILE |
+| Watch app: quest list with quick-complete buttons | Standalone habit completion (no iPhone needed) | MOBILE |
+| Complications: streak count + daily progress rings | Glanceable on watch face | MOBILE |
+| Haptic reminders for upcoming quests | Gentle wrist taps at quest-scheduled times | MOBILE |
+| HealthKit auto-logging from Watch | Steps, workouts, sleep → auto-complete matching quests | MOBILE |
+
+### Milestone 3 — Compassionate Streak Design
+
+| Task | Notes | Owner |
+|------|-------|-------|
+| Streak Freezes | Bank a freeze on good days, auto-apply on misses (Duolingo model) | ARCHITECT / MOBILE |
+| Comeback Quests | Miss a day → special "Welcome Back" quest with bonus XP | ARCHITECT / MOBILE |
+| Progressive onboarding | Start with ONE morning habit, add more over weeks (Fabulous model) | MOBILE |
+| 2-minute minimum quest bars | Every quest has a minimum bar so low "you'd feel silly saying no" | ARCHITECT |
+| Gentle re-engagement notifications | "We missed you!" not "You broke your streak!" | MOBILE |
+
+### Milestone 4 — History Logging MVP
 
 PRD: `specs/phase-1/prd-history-logging.md` (APPROVED)
 
@@ -173,36 +171,47 @@ PRD: `specs/phase-1/prd-history-logging.md` (APPROVED)
 | Weekly digest modal | US-3: totals, XP, streak, week-over-week comparison on Monday app open | MOBILE |
 | Basic completion history list on Progress screen | Chronological list of recent completions with category + time bucket | MOBILE |
 
-### Milestone 2 — Insights & Time Badges
+---
 
-| Task | Notes | Owner |
-|------|-------|-------|
-| Timing pattern insights | US-2: "Completed 1h earlier than average" banners after 5+ completions | ARCHITECT / MOBILE |
-| Time-of-day badges | US-4: Early Bird, Night Owl, Steady Eddie, Dawn Patrol | ARCHITECT / MOBILE |
-| Backend analytics service | Compute averages, detect deviations, generate insight data | ARCHITECT |
+## Phase 4B: Quality Gates (v0.4.1)
 
-### Milestone 3 — Widgets & Watch
+### Goal
 
-| Task | Notes | Owner |
-|------|-------|-------|
-| iOS home screen widgets | Wire App Groups + shared UserDefaults, connect Swift widget to RN data | MOBILE |
-| Android home screen widgets | Rebuild with Jetpack Glance under CNG config plugin | MOBILE |
-| Research iOS 27 widget APIs | Explore new capabilities for enhanced widget experiences | MOBILE |
-| Apple Watch companion | Build WatchConnectivity bridge (expo-modules), connect Swift watch app | MOBILE |
+Quality gates that block store submission but not personal use. Complete these before entering beta.
 
-### Milestone 4 — Polish
-
-| Task | Notes | Owner |
-|------|-------|-------|
-| Analytics dashboard | US-5: completion heat map, per-category trends, personal records | MOBILE |
-| Widget/Watch data feeds | US-6: today's count, streak, pace indicator for widgets and complications | MOBILE |
-| Design system alignment audit | Verify all screens match design tokens | MOBILE |
-| Onboarding funnel metrics + analytics taxonomy | Define events, implement tracking | GROWTH |
-| Animations polish (level-up, XP counter, badge award) | Refinement pass on Phase 1 celebrations | MOBILE |
+| Task | Issue | Status | Owner |
+|------|-------|--------|-------|
+| API integration tests with Docker Postgres | #56 | PENDING | ARCHITECT |
+| E2E testing framework setup (Detox vs Maestro eval) | #61 | PENDING | QA |
+| CI coverage reporting + thresholds (70% backend, 50% mobile) | #64 | PENDING | ARCHITECT |
+| CNG migration — move Swift widget/watch to config plugins | #62 | PENDING | ARCHITECT / MOBILE |
+| Configure EAS Updates (OTA) for beta hot-fixes | — | PENDING | ARCHITECT |
+| Performance profiling baseline | — | PENDING | QA |
+| Security review | — | PENDING | QA |
+| Accessibility audit | — | PENDING | QA |
 
 ---
 
-## Phase 5: Store Preparation (v0.6.0)
+## Phase 5: Intelligence (v0.5.0)
+
+### Goal
+
+Add AI-powered features that differentiate DYDYD from competitors. The LLM coach is the marquee feature — it turns natural language goals into actionable quests and adapts to the user's behavior patterns.
+
+| Task | Notes | Owner |
+|------|-------|-------|
+| LLM Coach: natural language quest creation | "I want to read more" → specific daily 15-min reading quest | ARCHITECT / MOBILE |
+| LLM Coach: completion pattern analysis | Suggest optimal times, detect burnout signals, adjust difficulty | ARCHITECT |
+| LLM Coach: proactive encouraging check-ins | Context-aware nudges, not generic reminders | MOBILE |
+| Timing pattern insights | US-2: "Completed 1h earlier than average" banners | ARCHITECT / MOBILE |
+| Time-of-day badges | US-4: Early Bird, Night Owl, Steady Eddie, Dawn Patrol | ARCHITECT / MOBILE |
+| Weekly digest enhancements | Week-over-week trends, personal records, AI-generated summaries | MOBILE |
+| Analytics dashboard | US-5: completion heat map, per-category trends, personal records | MOBILE |
+| Android home screen widgets | Jetpack Glance with Material You theming | MOBILE |
+
+---
+
+## Phase 6: Store Preparation (v0.6.0)
 
 | Task | Notes | Owner |
 |------|-------|-------|
@@ -213,17 +222,10 @@ PRD: `specs/phase-1/prd-history-logging.md` (APPROVED)
 | Production infrastructure (DB, hosting, monitoring) | — | ARCHITECT |
 | Apple Developer + Google Play Console accounts | — | FOUNDER |
 | EAS Submit configuration | — | ARCHITECT |
-
----
-
-## Phase 6: Beta Testing (v0.7.0)
-
-| Task | Notes | Owner |
-|------|-------|-------|
 | TestFlight internal testing | — | QA |
 | Google Play internal testing track | — | QA |
 | External beta (invited testers) | — | QA / GROWTH |
-| Bug triage + fixes | — | ALL |
+| Bug triage + fixes from beta | — | ALL |
 | Crash monitoring via Sentry (validate production) | Sentry integrated in Phase 2 | QA |
 
 ---
@@ -240,30 +242,37 @@ PRD: `specs/phase-1/prd-history-logging.md` (APPROVED)
 
 ---
 
-## Current State Summary (as of 2026-06-17)
+## Current State Summary (as of 2026-07-07)
 
 ### What exists
 
 | Layer | Coverage |
 |-------|----------|
-| **Backend** | 7 route files (auth, quests, health, progress, badges, user, notifications), Prisma schema (11 models), JWT auth with refresh tokens, rate limiting, streak logic. Zero tests. |
+| **Backend** | 7 route files (auth, quests, health, progress, badges, user, notifications), Prisma schema (15 models), JWT auth with refresh tokens, rate limiting, streak logic. 94+ unit tests across auth, quests, and user routes. 7 critical bugs fixed. |
 | **Mobile** | 19 screens, 14 components, 7 Redux slices, health integration (HealthKit, Google Fit, Garmin, Samsung), offline sync queue, push notifications (Expo), Sentry. 19 test files. |
 | **Shared** | Types, constants, utils. 2 test files, 120/120 passing. |
-| **Infrastructure** | GitHub Actions CI workflow, EAS build configs (dev/preview/production), Sentry integration. |
+| **Infrastructure** | GitHub Actions CI workflow (test + lint + typecheck), EAS build configs (dev/preview/production), Sentry integration. 47+ merged PRs, 59+ commits. |
 
-### Known gaps
+### Resolved since last update (2026-06-17 → 2026-07-07)
 
-- Backend has zero test coverage
-- No E2E test framework installed (leaning Detox — evaluating)
-- Database uses shadow DB instead of proper migrations
-- Android native directory committed but should be gitignored (CNG decision made)
-- History logging PRD approved but not implemented (Phase 4 M1)
-- Widgets exist as Swift stubs but not connected (Phase 4 M3)
-- Apple Watch companion Swift file exists but not connected (Phase 4 M3)
-- EAS Updates (OTA) not configured (Phase 3 Track E)
-- GitHub milestones v0.2.0 and v0.3.0 still open despite all issues closed
-- 3 UI bugs: dark mode logic, missing logout button, unwired delete account handler
-- 1 Prisma bug: user.ts deleteMany references wrong column (userId vs userQuestId)
+- Backend unit tests landed on main (auth, quests, user routes — 94+ tests)
+- 7 critical backend bugs fixed (route validation, Prisma queries, streaks)
+- All 10 open PRs merged or superseded
+- Milestones v0.2.0 and v0.3.0 closed
+- CLAUDE.md and SKILL.md updated with testing/SDLC guidance
+
+### Remaining gaps
+
+- Mobile test coverage incomplete (auth screens, HomeScreen, Redux slices — Phase 3B)
+- No E2E test framework installed (Detox vs Maestro decision deferred)
+- CNG migration not complete (android/ios gitignored but Swift code not in config plugins)
+- EAS Updates (OTA) not configured
+- Widgets exist as Swift stubs but not connected to RN (Phase 4A priority)
+- Apple Watch companion Swift code not connected (Phase 4A priority)
+- History logging PRD approved but not implemented (Phase 4A M4)
+- Compassionate streak design not implemented (Phase 4A M3)
+- No integration tests (blocked on Docker Postgres CI — Phase 4B)
+- No coverage thresholds in CI (Phase 4B)
 
 ### Key decisions (2026-06-16)
 
@@ -275,19 +284,30 @@ All 10 open questions resolved — see `specs/open-questions.md` for full detail
 | Test DB | Docker PostgreSQL everywhere |
 | Coverage thresholds | 70% backend / 50% mobile (excl. screens) |
 | EAS Updates | Phase 3 (now) |
-| Widgets | Phase 4 priority (iOS 27 research) |
-| Apple Watch | Phase 4 priority (macOS + Watch available) |
+| Widgets | Phase 4A priority — core vision, not polish |
+| Apple Watch | Phase 4A priority — macOS + Watch + iPhone available |
 | History logging | Full PRD, milestoned MVP-first delivery |
 | Premium | Feature-flag, launch free |
 | Open source | At store launch |
+| Streak design | Compassionate (Finch/Duolingo model) — no punitive streak-breaking |
+
+### Roadmap resequencing rationale (2026-07-07)
+
+The roadmap was resequenced based on a CTO-level review. Key strategic changes:
+
+1. **Widgets and Watch pulled forward to Phase 4A** — These are the core vision ("replace the homescreen"), not polish features. They should ship before quality gates that only matter for store submission.
+2. **Compassionate streak design added to Phase 4A** — The founder is self-described scatter-brained and procrastination-prone. Punitive streak mechanics will cause churn. Streak Freezes, Comeback Quests, and progressive onboarding are evidence-backed alternatives.
+3. **Quality gates (E2E, coverage, integration tests) moved to Phase 4B** — These gate store submission, not personal use. The founder can start using the app with widgets and Watch before these are complete.
+4. **LLM coach deferred to Phase 5** — High-impact differentiator but requires backend LLM integration, prompt engineering, and careful UX. Ship widget/watch first, then layer intelligence on top.
+5. **Beta testing merged into Phase 6** — Store prep and beta are a single workflow, not separate phases.
 
 ### Development environment
 
-- **Windows 11** (primary): Android emulator, backend, shared package
-- **MacBook Pro M2 Max** (secondary): iOS simulator, Xcode, Apple Watch, Expo Go
-- Cross-platform workflow: develop on Windows → push branch → pull on Mac for iOS testing → merge after confirmation
+- **Windows 11** (primary): Android emulator, backend, shared package, backend + Android testing
+- **MacBook Pro M2 Max** (secondary): iOS simulator, Xcode, Apple Watch, Expo Go, iOS/Watch manual testing
+- Cross-platform workflow: develop on Windows → push branch → pull on Mac for iOS/Watch testing → merge after confirmation
 - See `specs/cross-platform-workflow.md` for detailed process
 
 ---
 
-*Last updated: 2026-06-17*
+*Last updated: 2026-07-07*
