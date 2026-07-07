@@ -14,6 +14,7 @@ import progressRoutes from './routes/progress';
 import badgeRoutes from './routes/badges';
 import notificationRoutes from './routes/notifications';
 import healthRoutes from './routes/health';
+import streakRoutes from './routes/streaks';
 
 // Load environment variables
 dotenv.config();
@@ -65,6 +66,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/streaks', streakRoutes);
 
 // Error handling
 app.use(notFoundHandler);

@@ -2,11 +2,14 @@
 // DYDYD - Shared Utilities
 // ============================================
 
-import { QuestFrequency, DailyProgress, QuestCategory } from './types';
+import { QuestFrequency, DailyProgress, QuestCategory, StreakFreezeResult } from './types';
 import {
   calculateXPForLevel,
   getLevelFromXP,
   calculateTotalXPForLevel,
+  STREAK_FREEZE_CONFIG,
+  COMEBACK_CONFIG,
+  PROGRESSIVE_ONBOARDING,
 } from './constants';
 
 // -------------------- Date Utilities --------------------
@@ -226,6 +229,84 @@ export const calculateDailyProgress = (
     questsTotal: totalQuests,
     categoryBreakdown,
   };
+};
+
+// -------------------- Compassionate Streak Utilities --------------------
+
+/**
+ * Check if a user can use a streak freeze.
+ * A freeze is available if the user has at least one freeze remaining
+ * and has not already used a freeze today.
+ */
+export const canUseStreakFreeze = (user: {
+  streakFreezes: number;
+  streakFreezeUsedAt?: string;
+}): boolean => {
+  if (user.streakFreezes <= 0) return false;
+
+  if (user.streakFreezeUsedAt) {
+    const usedDate = new Date(user.streakFreezeUsedAt);
+    const today = new Date();
+    if (isSameDay(usedDate, today)) return false;
+  }
+
+  return true;
+};
+
+/**
+ * Apply a streak freeze, returning the result.
+ * Decrements the freeze count and indicates the streak was preserved.
+ */
+export const applyStreakFreeze = (user: {
+  streakFreezes: number;
+}): StreakFreezeResult => {
+  if (user.streakFreezes <= 0) {
+    return {
+      used: false,
+      freezesRemaining: 0,
+      streakPreserved: false,
+    };
+  }
+
+  return {
+    used: true,
+    freezesRemaining: user.streakFreezes - 1,
+    streakPreserved: true,
+  };
+};
+
+/**
+ * Determine if the user should be offered a comeback quest.
+ * Returns true if the user missed between 1 and COMEBACK_CONFIG.maxMissedDays
+ * days (inclusive on both ends).
+ */
+export const shouldOfferComebackQuest = (
+  lastActiveDate: string | Date,
+  now?: Date
+): boolean => {
+  const lastActive = lastActiveDate instanceof Date ? lastActiveDate : new Date(lastActiveDate);
+  const current = now ?? new Date();
+  const daysMissed = getDaysBetween(lastActive, current);
+
+  return daysMissed >= 1 && daysMissed <= COMEBACK_CONFIG.maxMissedDays;
+};
+
+/**
+ * Calculate comeback XP by applying the bonus multiplier to the base XP.
+ */
+export const calculateComebackXP = (baseXP: number): number => {
+  return Math.floor(baseXP * COMEBACK_CONFIG.bonusXPMultiplier);
+};
+
+/**
+ * Get the maximum number of quests a user can have based on their active days.
+ * Users start with PROGRESSIVE_ONBOARDING.initialQuestLimit quests and unlock
+ * PROGRESSIVE_ONBOARDING.maxQuestsPerUnlock more every
+ * PROGRESSIVE_ONBOARDING.daysToUnlockMore active days.
+ */
+export const getOnboardingQuestLimit = (activeDaysCount: number): number => {
+  const unlocks = Math.floor(activeDaysCount / PROGRESSIVE_ONBOARDING.daysToUnlockMore);
+  return PROGRESSIVE_ONBOARDING.initialQuestLimit + unlocks * PROGRESSIVE_ONBOARDING.maxQuestsPerUnlock;
 };
 
 // -------------------- Validation Utilities --------------------

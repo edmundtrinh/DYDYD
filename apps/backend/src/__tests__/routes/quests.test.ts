@@ -40,6 +40,12 @@ jest.mock('../../lib/prisma', () => {
   };
 });
 
+// Mock streaks lib — quest completion now calls trackActiveDay/checkAndAutoApplyFreeze
+jest.mock('../../lib/streaks', () => ({
+  trackActiveDay: jest.fn().mockResolvedValue({ activeDaysCount: 1, freezeAwarded: false }),
+  checkAndAutoApplyFreeze: jest.fn().mockResolvedValue({ freezeApplied: false, freezesRemaining: 0 }),
+}));
+
 // Mock auth middleware — authenticate just injects a userId; optionalAuth is a passthrough
 jest.mock('../../middleware/auth', () => ({
   authenticate: (req: any, _res: any, next: any) => {

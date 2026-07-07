@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
+import { trackActiveDay, checkAndAutoApplyFreeze } from '../lib/streaks';
 import { ApiResponse, Quest, HealthDataSource } from '@dydyd/shared';
 
 const router: IRouter = Router();
@@ -253,6 +254,12 @@ router.post(
 
         return [newCompletion, updatedQuest];
       });
+
+      // Compassionate streaks: check for auto-freeze before tracking today.
+      // Order matters: checkAndAutoApplyFreeze reads lastActiveDate to detect
+      // a 1-day gap, so it must run before trackActiveDay updates lastActiveDate.
+      await checkAndAutoApplyFreeze(req.userId!);
+      await trackActiveDay(req.userId!);
 
       const response: ApiResponse<{ completion: any; userQuest: any; xpEarned: number }> = {
         success: true,

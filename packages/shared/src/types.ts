@@ -71,6 +71,9 @@ export interface User {
   premiumExpiresAt?: Date;
   settings: UserSettings;
   categoryPriorities: CategoryPriority[];
+  streakFreezes: number;
+  maxStreakFreezes: number;
+  streakFreezeUsedAt?: string;
 }
 
 export interface UserSettings {
@@ -135,6 +138,19 @@ export interface QuestCompletion {
   source: HealthDataSource;
   periodStart: Date; // Start of the day/week this completion belongs to
   notes?: string;
+}
+
+// -------------------- Compassionate Streak Types --------------------
+
+export interface ComebackQuest extends Quest {
+  bonusXPMultiplier: number;
+  isComeback: true;
+}
+
+export interface StreakFreezeResult {
+  used: boolean;
+  freezesRemaining: number;
+  streakPreserved: boolean;
 }
 
 // -------------------- Gamification Types --------------------

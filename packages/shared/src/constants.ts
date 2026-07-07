@@ -621,6 +621,26 @@ export const CATEGORY_METADATA: Record<
   },
 };
 
+// -------------------- Compassionate Streak Constants --------------------
+
+export const STREAK_FREEZE_CONFIG = {
+  maxFreezes: 3,
+  freezeEarnInterval: 7, // Earn 1 freeze every 7 active days
+} as const;
+
+export const COMEBACK_CONFIG = {
+  bonusXPMultiplier: 1.5,
+  maxMissedDays: 7, // Comeback quest available if missed <= 7 days
+} as const;
+
+export const PROGRESSIVE_ONBOARDING = {
+  initialQuestLimit: 1,
+  daysToUnlockMore: 3, // Unlock more quests every 3 active days
+  maxQuestsPerUnlock: 2, // Unlock 2 more quests each time
+} as const;
+
+export const MINIMUM_QUEST_DURATION_MINUTES = 2;
+
 // -------------------- App Constants --------------------
 
 export const APP_CONSTANTS = {
