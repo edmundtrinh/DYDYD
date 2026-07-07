@@ -5,9 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
     "ios": {
       "bundleIdentifier": "com.dydyd.app",
       "supportsTablet": false,
+      "deploymentTarget": "16.0",
       "infoPlist": {
         "NSHealthShareUsageDescription": "DYDYD reads your health data to track quest progress.",
         "NSHealthUpdateUsageDescription": "DYDYD writes workout and activity data for quest completion.",
