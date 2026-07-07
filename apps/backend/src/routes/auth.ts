@@ -8,6 +8,7 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
   authenticate,
+  AuthenticatedRequest,
 } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
@@ -297,13 +298,14 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { refreshToken } = req.body;
+      const authedReq = req as AuthenticatedRequest;
 
       if (refreshToken) {
         // Revoke the specific refresh token
         await prisma.refreshToken.updateMany({
           where: {
             token: refreshToken,
-            userId: req.userId!,
+            userId: authedReq.userId,
           },
           data: {
             revokedAt: new Date(),
@@ -313,7 +315,7 @@ router.post(
         // Revoke all refresh tokens for this user
         await prisma.refreshToken.updateMany({
           where: {
-            userId: req.userId!,
+            userId: authedReq.userId,
             revokedAt: null,
           },
           data: {

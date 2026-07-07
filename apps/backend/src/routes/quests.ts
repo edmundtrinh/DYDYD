@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import { body, param } from 'express-validator';
 import { Prisma } from '@prisma/client';
 import { validate } from '../middleware/validate';
-import { authenticate, optionalAuth } from '../middleware/auth';
+import { authenticate, optionalAuth, AuthenticatedRequest } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { ApiResponse, Quest, HealthDataSource } from '@dydyd/shared';
@@ -48,9 +48,10 @@ router.get(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const userQuests = await prisma.userQuest.findMany({
         where: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           isActive: true,
         },
         include: {
@@ -102,10 +103,11 @@ router.post(
         throw Errors.notFound('Quest');
       }
 
+      const authedReq = req as AuthenticatedRequest;
       // Check if already activated
       const existingUserQuest = await prisma.userQuest.findFirst({
         where: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           questId,
         },
       });
@@ -131,7 +133,7 @@ router.post(
       // Create new user quest
       const userQuest = await prisma.userQuest.create({
         data: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           questId,
           isActive: true,
           reminderEnabled: false,
@@ -172,11 +174,12 @@ router.post(
       const { id: userQuestId } = req.params;
       const { value, source = 'manual', notes } = req.body;
 
+      const authedReq = req as AuthenticatedRequest;
       // Get user quest
       const userQuest = await prisma.userQuest.findFirst({
         where: {
           id: userQuestId,
-          userId: req.userId!,
+          userId: authedReq.userId,
           isActive: true,
         },
         include: { quest: true },
@@ -247,7 +250,7 @@ router.post(
         });
 
         await tx.user.update({
-          where: { id: req.userId! },
+          where: { id: authedReq.userId },
           data: { totalXP: { increment: xpEarned } },
         });
 
@@ -284,10 +287,11 @@ router.delete(
     try {
       const { id: userQuestId } = req.params;
 
+      const authedReq = req as AuthenticatedRequest;
       const userQuest = await prisma.userQuest.findFirst({
         where: {
           id: userQuestId,
-          userId: req.userId!,
+          userId: authedReq.userId,
         },
       });
 
@@ -338,14 +342,15 @@ router.post(
         iconName = 'star',
       } = req.body;
 
+      const authedReq = req as AuthenticatedRequest;
       // Check user's custom quest limit
       const user = await prisma.user.findUnique({
-        where: { id: req.userId! },
+        where: { id: authedReq.userId },
       });
 
       const customQuestCount = await prisma.quest.count({
         where: {
-          createdById: req.userId!,
+          createdById: authedReq.userId,
           isCustom: true,
         },
       });
@@ -367,14 +372,14 @@ router.post(
           iconName,
           isDefault: false,
           isCustom: true,
-          createdById: req.userId!,
+          createdById: authedReq.userId,
         },
       });
 
       // Automatically activate for user
       const userQuest = await prisma.userQuest.create({
         data: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           questId: quest.id,
           isActive: true,
           reminderEnabled: false,

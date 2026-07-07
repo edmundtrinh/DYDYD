@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import { body, param } from 'express-validator';
 import { validate } from '../middleware/validate';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { ApiResponse, DevicePlatform } from '@dydyd/shared';
@@ -32,19 +32,20 @@ router.post(
   ]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const { token, platform, deviceName } = req.body;
 
       // Upsert — if this token already exists, update it; otherwise create
       const deviceToken = await prisma.deviceToken.upsert({
         where: { token },
         update: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           platform,
           deviceName,
           lastActive: new Date(),
         },
         create: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           token,
           platform,
           deviceName,
@@ -79,15 +80,16 @@ router.get(
       );
       const skip = (page - 1) * perPage;
 
+      const authedReq = req as AuthenticatedRequest;
       const [notifications, total] = await Promise.all([
         prisma.notification.findMany({
-          where: { userId: req.userId! },
+          where: { userId: authedReq.userId },
           orderBy: { createdAt: 'desc' },
           skip,
           take: perPage,
         }),
         prisma.notification.count({
-          where: { userId: req.userId! },
+          where: { userId: authedReq.userId },
         }),
       ]);
 
@@ -124,10 +126,11 @@ router.put(
       const { id } = req.params;
 
       // Ensure the notification belongs to this user
+      const authedReq = req as AuthenticatedRequest;
       const notification = await prisma.notification.findFirst({
         where: {
           id,
-          userId: req.userId!,
+          userId: authedReq.userId,
         },
       });
 

@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Errors } from './errorHandler';
 
-// Extend Express Request to include user
 declare global {
   namespace Express {
     interface Request {
@@ -13,6 +12,14 @@ declare global {
       };
     }
   }
+}
+
+export interface AuthenticatedRequest extends Request {
+  userId: string;
+  user: {
+    id: string;
+    email: string;
+  };
 }
 
 export interface JwtPayload {

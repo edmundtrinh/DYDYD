@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import { query } from 'express-validator';
 import { validate } from '../middleware/validate';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { calculateOverallDayStreak, calculateUserQuestStreak } from '../lib/streaks';
@@ -24,8 +24,9 @@ router.get(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const user = await prisma.user.findUnique({
-        where: { id: req.userId! },
+        where: { id: authedReq.userId },
       });
 
       if (!user) {
@@ -36,7 +37,7 @@ router.get(
       const completionStats = await prisma.questCompletion.aggregate({
         where: {
           userQuest: {
-            userId: req.userId!,
+            userId: authedReq.userId,
           },
         },
         _count: true,
@@ -47,7 +48,7 @@ router.get(
 
       // Get badge count
       const badgeCount = await prisma.userBadge.count({
-        where: { userId: req.userId! },
+        where: { userId: authedReq.userId },
       });
 
       // Get category stats
@@ -55,7 +56,7 @@ router.get(
         by: ['userQuestId'],
         where: {
           userQuest: {
-            userId: req.userId!,
+            userId: authedReq.userId,
           },
         },
         _count: true,
@@ -67,7 +68,7 @@ router.get(
       // Get streak info from user quests
       const userQuests = await prisma.userQuest.findMany({
         where: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           isActive: true,
         },
         include: {
@@ -77,7 +78,7 @@ router.get(
 
       // Calculate real day-over-day streak from completion data
       const { currentDayStreak, longestDayStreak } =
-        await calculateOverallDayStreak(req.userId!);
+        await calculateOverallDayStreak(authedReq.userId);
 
       // Build category stats with real per-quest streak calculations
       const categoryStats: Record<QuestCategory, { totalXP: number; totalCompletions: number; currentStreak: number; longestStreak: number }> = {
@@ -156,11 +157,12 @@ router.get(
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
 
+      const authedReq = req as AuthenticatedRequest;
       // Get completions for the day
       const completions = await prisma.questCompletion.findMany({
         where: {
           userQuest: {
-            userId: req.userId!,
+            userId: authedReq.userId,
           },
           completedAt: {
             gte: startOfDay,
@@ -195,7 +197,7 @@ router.get(
       // Get total quest count for user
       const totalQuests = await prisma.userQuest.count({
         where: {
-          userId: req.userId!,
+          userId: authedReq.userId,
           isActive: true,
         },
       });
@@ -262,9 +264,10 @@ router.get(
         [QuestCategory.HOME_CHORES]: 0,
       };
 
+      const authedReq = req as AuthenticatedRequest;
       // Fetch active quest count once — it's the same for all 7 days
       const totalQuests = await prisma.userQuest.count({
-        where: { userId: req.userId!, isActive: true },
+        where: { userId: authedReq.userId, isActive: true },
       });
 
       for (let i = 0; i < 7; i++) {
@@ -278,7 +281,7 @@ router.get(
         const completions = await prisma.questCompletion.findMany({
           where: {
             userQuest: {
-              userId: req.userId!,
+              userId: authedReq.userId,
             },
             completedAt: {
               gte: dayStart,
@@ -361,8 +364,9 @@ router.get(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const userBadges = await prisma.userBadge.findMany({
-        where: { userId: req.userId! },
+        where: { userId: authedReq.userId },
         include: { badge: true },
         orderBy: { earnedAt: 'desc' },
       });

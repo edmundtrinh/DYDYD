@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import bcrypt from 'bcryptjs';
 import { body } from 'express-validator';
 import { validate } from '../middleware/validate';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { ApiResponse, CategoryPriority, UserSettings } from '@dydyd/shared';
@@ -18,8 +18,9 @@ router.get(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const user = await prisma.user.findUnique({
-        where: { id: req.userId! },
+        where: { id: authedReq.userId },
         include: {
           settings: true,
           categoryPriorities: true,
@@ -71,8 +72,9 @@ router.put(
       if (displayName !== undefined) updateData.displayName = displayName;
       if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
 
+      const authedReq = req as AuthenticatedRequest;
       const user = await prisma.user.update({
-        where: { id: req.userId! },
+        where: { id: authedReq.userId },
         data: updateData,
         include: {
           settings: true,
@@ -103,8 +105,9 @@ router.get(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const settings = await prisma.userSettings.findUnique({
-        where: { userId: req.userId! },
+        where: { userId: authedReq.userId },
       });
 
       if (!settings) {
@@ -181,8 +184,9 @@ router.put(
       if (soundEnabled !== undefined) updateData.soundEnabled = soundEnabled;
       if (hapticFeedbackEnabled !== undefined) updateData.hapticFeedbackEnabled = hapticFeedbackEnabled;
 
+      const authedReq = req as AuthenticatedRequest;
       const settings = await prisma.userSettings.update({
-        where: { userId: req.userId! },
+        where: { userId: authedReq.userId },
         data: updateData,
       });
 
@@ -207,8 +211,9 @@ router.get(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const priorities = await prisma.categoryPriority.findMany({
-        where: { userId: req.userId! },
+        where: { userId: authedReq.userId },
         orderBy: { priority: 'desc' },
       });
 
@@ -249,14 +254,15 @@ router.put(
     try {
       const { priorities } = req.body;
 
+      const authedReq = req as AuthenticatedRequest;
       // Delete existing priorities and create new ones
       await prisma.$transaction([
         prisma.categoryPriority.deleteMany({
-          where: { userId: req.userId! },
+          where: { userId: authedReq.userId },
         }),
         prisma.categoryPriority.createMany({
           data: priorities.map((p: CategoryPriority) => ({
-            userId: req.userId!,
+            userId: authedReq.userId,
             category: p.category,
             priority: p.priority,
             isEnabled: p.isEnabled,
@@ -265,7 +271,7 @@ router.put(
       ]);
 
       const updatedPriorities = await prisma.categoryPriority.findMany({
-        where: { userId: req.userId! },
+        where: { userId: authedReq.userId },
         orderBy: { priority: 'desc' },
       });
 
@@ -293,7 +299,8 @@ router.delete(
   ]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.userId!;
+      const authedReq = req as AuthenticatedRequest;
+      const userId = authedReq.userId;
       const { password } = req.body;
 
       const user = await prisma.user.findUnique({ where: { id: userId } });

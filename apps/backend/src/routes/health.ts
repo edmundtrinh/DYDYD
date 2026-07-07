@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction, IRouter } from 'express';
 import { body } from 'express-validator';
 import { validate } from '../middleware/validate';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import {
@@ -69,7 +69,8 @@ router.post(
         }>;
       };
 
-      const userId = req.userId!;
+      const authedReq = req as AuthenticatedRequest;
+      const userId = authedReq.userId;
 
       // Get user's active quests that have a health data type
       const userQuests = await prisma.userQuest.findMany({

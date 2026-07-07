@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction, IRouter } from 'express';
-import { authenticate, optionalAuth } from '../middleware/auth';
+import { authenticate, optionalAuth, AuthenticatedRequest } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { ApiResponse, Badge, QuestCategory } from '@dydyd/shared';
@@ -43,8 +43,9 @@ router.get(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const authedReq = req as AuthenticatedRequest;
       const userBadges = await prisma.userBadge.findMany({
-        where: { userId: req.userId! },
+        where: { userId: authedReq.userId },
         include: { badge: true },
         orderBy: { earnedAt: 'desc' },
       });
@@ -70,7 +71,8 @@ router.post(
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.userId!;
+      const authedReq = req as AuthenticatedRequest;
+      const userId = authedReq.userId;
 
       // Get user data
       const user = await prisma.user.findUnique({
