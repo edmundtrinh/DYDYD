@@ -68,9 +68,9 @@
 - [ ] AC-4.1: `MINIMUM_QUEST_DURATION_MINUTES` constant in `packages/shared/src/constants.ts` set to `2`
 - [ ] AC-4.2: Every predefined quest in `PREDEFINED_QUESTS` retains its full target (e.g., 10,000 steps) but the completion UI shows a "minimum bar" at the 2-minute mark: "Even 2 minutes of walking counts"
 - [ ] AC-4.3: Custom quest creation form in `apps/mobile/src/screens/quests/AddQuestScreen.tsx` adds an optional "minimum bar" field (defaults to 2 minutes)
-- [ ] AC-4.4: Quest completion allows partial credit: completing the minimum bar earns 50% of baseXP, full target earns 100%
+- [ ] AC-4.4: Quest completion recognizes minimum-bar completions as valid; XP credit policy (full credit vs. partial credit) is an **open design question requiring founder sign-off** -- see Design Notes for tradeoffs
 - [ ] AC-4.5: HomeScreen quest cards show both minimum and full bars visually (e.g., a progress bar with a marker at the 2-minute point)
-- [ ] AC-4.6: Backend `POST /api/quests/:id/complete` accepts an optional `durationMinutes` field; if `durationMinutes >= MINIMUM_QUEST_DURATION_MINUTES` but below full target, XP is calculated at 50% rate
+- [ ] AC-4.6: Backend `POST /api/quests/:id/complete` accepts an optional `durationMinutes` field; if `durationMinutes >= MINIMUM_QUEST_DURATION_MINUTES` but below full target, the completion is recorded with a `minimumBar: true` flag -- XP multiplier is configurable pending founder decision on AC-4.4
 
 #### AC-5: Gentle Re-engagement Notifications
 
@@ -132,7 +132,7 @@
 - MT-79-4: Return after 10-day absence -- verify comeback quest does NOT appear
 - MT-79-5: New user -- verify can only activate 1 quest initially
 - MT-79-6: After 3 active days -- verify 2 more quest slots unlock
-- MT-79-7: Complete 2-minute minimum of a 30-minute quest -- verify 50% XP awarded
+- MT-79-7: Complete 2-minute minimum of a 30-minute quest -- verify minimum-bar completion is recorded and XP is awarded per the configured credit policy
 - MT-79-8: Receive re-engagement notification after 24h -- verify compassionate tone
 
 ### Design Notes
@@ -142,6 +142,10 @@
 - **Duolingo model:** Streak freezes are directly inspired by Duolingo's mechanic, which drove 36% YoY DAU growth. The key insight: giving users a "save" makes the streak feel achievable rather than fragile.
 - **Fabulous model:** Progressive onboarding (start with one habit, add more gradually) is inspired by The Fabulous app, which uses behavioral science to prevent new-user overwhelm.
 - **2-minute minimum:** Based on BJ Fogg's "Tiny Habits" framework -- if the bar is so low "you'd feel silly saying no," users build the routine. Full completion is the goal; minimum completion preserves momentum.
+- **OPEN QUESTION -- Minimum-bar XP credit (AC-4.4):** Should completing the 2-minute minimum earn **full XP** or **partial XP** (e.g., 50%)? This is a values decision that requires founder sign-off:
+  - **Option A -- Full credit:** Aligns with AC-5.2 ("never make the user feel they failed"). The 2-minute bar exists to make starting effortless; penalizing it with reduced XP reintroduces exactly the guilt this feature is designed to eliminate. Finch model: every interaction is celebrated equally.
+  - **Option B -- Partial credit (50%):** Creates a clear incentive to do the full quest. Gamification best practice: differentiated rewards drive engagement curves. Duolingo model: completing a partial lesson gives less XP than a full one.
+  - **Recommendation:** Lean toward full credit for MVP to validate the compassionate positioning. A/B test partial credit in a later phase once baseline retention data exists. Implement the backend with a configurable multiplier (`MINIMUM_BAR_XP_MULTIPLIER`) so the decision is a config change, not a code change.
 
 ---
 
