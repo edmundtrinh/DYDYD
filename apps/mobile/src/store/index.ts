@@ -24,6 +24,9 @@ import healthReducer from './slices/healthSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import uiReducer from './slices/uiSlice';
 
+// Import middleware
+import { widgetSyncMiddleware } from './middleware/widgetSync';
+
 // Combine reducers
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -54,7 +57,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }),
+    }).concat(widgetSyncMiddleware),
   devTools: __DEV__,
 });
 

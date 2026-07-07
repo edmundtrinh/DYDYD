@@ -8,7 +8,13 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "appExtensions": [
+          {
+            "targetName": "DYDYDWidgetExtension",
+            "bundleIdentifier": "com.dydyd.app.widget"
+          }
+        ]
       },
       "android": {
         "buildType": "apk",
@@ -21,7 +27,13 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "appExtensions": [
+          {
+            "targetName": "DYDYDWidgetExtension",
+            "bundleIdentifier": "com.dydyd.app.widget"
+          }
+        ]
       },
       "android": {
         "buildType": "apk"
@@ -33,7 +45,13 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "appExtensions": [
+          {
+            "targetName": "DYDYDWidgetExtension",
+            "bundleIdentifier": "com.dydyd.app.widget"
+          }
+        ]
       },
       "android": {
         "buildType": "app-bundle"

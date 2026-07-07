@@ -27,12 +27,29 @@
     },
     "plugins": [
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ],
+      [
         "react-native-health",
         {
           "healthSharePermission": "DYDYD reads your health data to track quest progress.",
           "healthUpdatePermission": "DYDYD writes workout and activity data for quest completion."
         }
-      ]
+      ],
+      [
+        "react-native-widget-extension",
+        {
+          "widgetsFolder": "widgets",
+          "deploymentTarget": "17.0",
+          "groupIdentifier": "group.com.dydyd.app"
+        }
+      ],
+      "./plugins/withDYDYDWidget/withDYDYDWidget"
     ]
   }
 }
