@@ -14,7 +14,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "moduleResolution": "node",
-    "types": ["node", "jest"],
+    "types": ["node", "jest", "bun-types"],
     "baseUrl": "./src",
     "paths": {
       "@/*": ["./*"]

@@ -3,7 +3,6 @@ import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { logger } from 'hono/logger';
 import { compress } from 'hono/compress';
-import { serve } from '@hono/node-server';
 import dotenv from 'dotenv';
 
 import { errorHandler } from './middleware/errorHandler';
@@ -72,10 +71,18 @@ app.notFound((c) => {
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {
-  serve({ fetch: app.fetch, port: PORT }, () => {
-    console.log(`DYDYD Backend running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-  });
+  const isBun = typeof globalThis.Bun !== 'undefined';
+  if (isBun) {
+    Bun.serve({ fetch: app.fetch, port: PORT });
+    console.log(`DYDYD Backend running on port ${PORT} (Bun)`);
+  } else {
+    import('@hono/node-server').then(({ serve }) => {
+      serve({ fetch: app.fetch, port: PORT }, () => {
+        console.log(`DYDYD Backend running on port ${PORT} (Node.js)`);
+      });
+    });
+  }
+  console.log(`Health check: http://localhost:${PORT}/health`);
 }
 
 export default app;

@@ -4,14 +4,16 @@
   "description": "DYDYD Backend API",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "dev:node": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "bun src/index.ts",
+    "start:node": "node dist/index.js",
     "test": "jest --passWithNoTests",
     "lint": "eslint 'src/**/*.ts'",
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:migrate": "bunx prisma migrate dev",
+    "db:generate": "bunx prisma generate",
+    "db:seed": "bun prisma/seed.ts"
   },
   "dependencies": {
     "@dydyd/shared": "workspace:*",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/bun": "^1.2.0",
     "@types/jest": "^29.5.11",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.11.0",
