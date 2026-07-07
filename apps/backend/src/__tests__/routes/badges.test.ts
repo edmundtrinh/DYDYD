@@ -1,5 +1,4 @@
-import express from 'express';
-import request from 'supertest';
+import { Hono } from 'hono';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import badgeRoutes from '../../routes/badges';
@@ -28,10 +27,9 @@ jest.mock('../../lib/prisma', () => ({
   },
 }));
 
-const app = express();
-app.use(express.json());
-app.use('/api/badges', badgeRoutes);
-app.use(errorHandler);
+const app = new Hono();
+app.route('/api/badges', badgeRoutes);
+app.onError((err, c) => errorHandler(err, c));
 
 const USER_UUID = '00000000-0000-4000-a000-000000000100';
 const BADGE_1_UUID = '00000000-0000-4000-a000-000000000b01';
@@ -80,11 +78,12 @@ describe('GET /api/badges', () => {
   it('should return all badges ordered by rarity and name', async () => {
     (prisma.badge.findMany as jest.Mock).mockResolvedValue([mockBadge1, mockBadge2]);
 
-    const res = await request(app).get('/api/badges');
+    const res = await app.request('/api/badges');
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveLength(2);
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(2);
     expect(prisma.badge.findMany).toHaveBeenCalledWith({
       orderBy: [{ rarity: 'asc' }, { name: 'asc' }],
     });
@@ -93,16 +92,17 @@ describe('GET /api/badges', () => {
   it('should return empty array when no badges exist', async () => {
     (prisma.badge.findMany as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app).get('/api/badges');
+    const res = await app.request('/api/badges');
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toHaveLength(0);
+    expect(body.data).toHaveLength(0);
   });
 
   it('should work without authentication', async () => {
     (prisma.badge.findMany as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app).get('/api/badges');
+    const res = await app.request('/api/badges');
 
     expect(res.status).toBe(200);
   });
@@ -119,13 +119,14 @@ describe('GET /api/badges/user', () => {
     }];
     (prisma.userBadge.findMany as jest.Mock).mockResolvedValue(mockUserBadges);
 
-    const res = await request(app)
-      .get('/api/badges/user')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/user', {
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveLength(1);
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(1);
     expect(prisma.userBadge.findMany).toHaveBeenCalledWith({
       where: { userId: USER_UUID },
       include: { badge: true },
@@ -136,16 +137,17 @@ describe('GET /api/badges/user', () => {
   it('should return empty array when user has no badges', async () => {
     (prisma.userBadge.findMany as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app)
-      .get('/api/badges/user')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/user', {
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toHaveLength(0);
+    expect(body.data).toHaveLength(0);
   });
 
   it('should return 401 when not authenticated', async () => {
-    const res = await request(app).get('/api/badges/user');
+    const res = await app.request('/api/badges/user');
     expect(res.status).toBe(401);
   });
 });
@@ -161,14 +163,16 @@ describe('POST /api/badges/check', () => {
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(5);
     (prisma.$transaction as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.awarded).toHaveLength(1);
-    expect(res.body.data.awarded[0].name).toBe('First Steps');
-    expect(res.body.data.xpBonusTotal).toBe(10);
+    expect(body.data.awarded).toHaveLength(1);
+    expect(body.data.awarded[0].name).toBe('First Steps');
+    expect(body.data.xpBonusTotal).toBe(10);
     expect(prisma.$transaction).toHaveBeenCalled();
   });
 
@@ -181,13 +185,15 @@ describe('POST /api/badges/check', () => {
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(0);
     (prisma.$transaction as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.awarded).toHaveLength(1);
-    expect(res.body.data.awarded[0].name).toBe('XP Master');
+    expect(body.data.awarded).toHaveLength(1);
+    expect(body.data.awarded[0].name).toBe('XP Master');
   });
 
   it('should award badges when streak requirement met', async () => {
@@ -207,13 +213,15 @@ describe('POST /api/badges/check', () => {
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(20);
     (prisma.$transaction as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.awarded).toHaveLength(1);
-    expect(res.body.data.awarded[0].name).toBe('Streak King');
+    expect(body.data.awarded).toHaveLength(1);
+    expect(body.data.awarded[0].name).toBe('Streak King');
   });
 
   it('should award badges when category_completions met', async () => {
@@ -234,12 +242,14 @@ describe('POST /api/badges/check', () => {
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(15);
     (prisma.$transaction as jest.Mock).mockResolvedValue([]);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.awarded).toHaveLength(1);
+    expect(body.data.awarded).toHaveLength(1);
   });
 
   it('should not award badges already earned', async () => {
@@ -251,13 +261,15 @@ describe('POST /api/badges/check', () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(100);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.awarded).toHaveLength(0);
-    expect(res.body.data.xpBonusTotal).toBe(0);
+    expect(body.data.awarded).toHaveLength(0);
+    expect(body.data.xpBonusTotal).toBe(0);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -268,12 +280,14 @@ describe('POST /api/badges/check', () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(0);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.awarded).toHaveLength(0);
+    expect(body.data.awarded).toHaveLength(0);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -289,26 +303,31 @@ describe('POST /api/badges/check', () => {
     (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.questCompletion.count as jest.Mock).mockResolvedValue(100);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
+    const body = await res.json() as any;
 
     expect(res.status).toBe(200);
-    expect(res.body.data.awarded).toHaveLength(0);
+    expect(body.data.awarded).toHaveLength(0);
   });
 
   it('should return 404 when user not found', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post('/api/badges/check')
-      .set('Authorization', `Bearer ${validToken}`);
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${validToken}` },
+    });
 
     expect(res.status).toBe(404);
   });
 
   it('should return 401 when not authenticated', async () => {
-    const res = await request(app).post('/api/badges/check');
+    const res = await app.request('/api/badges/check', {
+      method: 'POST',
+    });
     expect(res.status).toBe(401);
   });
 });

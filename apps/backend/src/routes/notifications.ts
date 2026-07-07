@@ -1,66 +1,62 @@
-import { Router, Request, Response, NextFunction, IRouter } from 'express';
-import { body, param } from 'express-validator';
-import { validate } from '../middleware/validate';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth';
+import { Hono } from 'hono';
+import { z } from 'zod';
+import { validateBody } from '../middleware/validate';
+import { authenticate, AuthEnv } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { ApiResponse, DevicePlatform } from '@dydyd/shared';
 
-const router: IRouter = Router();
+type Env = {
+  Variables: AuthEnv['Variables'] & {
+    validatedBody: unknown;
+  };
+};
+
+const app = new Hono<Env>();
+
+const deviceTokenSchema = z.object({
+  token: z.string().min(1),
+  platform: z.enum(['ios', 'android', 'watchos', 'wear_os', 'tizen', 'garmin']),
+  deviceName: z.string().optional(),
+});
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * POST /api/notifications/device-token
  * Register a device push token
  */
-router.post(
+app.post(
   '/device-token',
   authenticate,
-  validate([
-    body('token')
-      .notEmpty()
-      .withMessage('Device token is required')
-      .isString()
-      .withMessage('Device token must be a string'),
-    body('platform')
-      .isIn(['ios', 'android', 'watchos', 'wear_os', 'tizen', 'garmin'])
-      .withMessage('Invalid platform'),
-    body('deviceName')
-      .optional()
-      .trim()
-      .isString()
-      .withMessage('Device name must be a string'),
-  ]),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const authedReq = req as AuthenticatedRequest;
-      const { token, platform, deviceName } = req.body;
+  validateBody(deviceTokenSchema),
+  async (c) => {
+    const { token, platform, deviceName } = c.get('validatedBody') as z.infer<typeof deviceTokenSchema>;
+    const userId = c.get('userId');
 
-      // Upsert — if this token already exists, update it; otherwise create
-      const deviceToken = await prisma.deviceToken.upsert({
-        where: { token },
-        update: {
-          userId: authedReq.userId,
-          platform,
-          deviceName,
-          lastActive: new Date(),
-        },
-        create: {
-          userId: authedReq.userId,
-          token,
-          platform,
-          deviceName,
-        },
-      });
+    // Upsert -- if this token already exists, update it; otherwise create
+    const deviceToken = await prisma.deviceToken.upsert({
+      where: { token },
+      update: {
+        userId,
+        platform,
+        deviceName,
+        lastActive: new Date(),
+      },
+      create: {
+        userId,
+        token,
+        platform,
+        deviceName,
+      },
+    });
 
-      const response: ApiResponse<any> = {
-        success: true,
-        data: deviceToken,
-      };
+    const response: ApiResponse<any> = {
+      success: true,
+      data: deviceToken,
+    };
 
-      res.status(201).json(response);
-    } catch (error) {
-      next(error);
-    }
+    return c.json(response, 201);
   }
 );
 
@@ -68,46 +64,42 @@ router.post(
  * GET /api/notifications
  * Get notification history for the authenticated user
  */
-router.get(
+app.get(
   '/',
   authenticate,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const perPage = Math.min(
-        100,
-        Math.max(1, parseInt(req.query.perPage as string) || 20)
-      );
-      const skip = (page - 1) * perPage;
+  async (c) => {
+    const page = Math.max(1, parseInt(c.req.query('page') || '') || 1);
+    const perPage = Math.min(
+      100,
+      Math.max(1, parseInt(c.req.query('perPage') || '') || 20)
+    );
+    const skip = (page - 1) * perPage;
 
-      const authedReq = req as AuthenticatedRequest;
-      const [notifications, total] = await Promise.all([
-        prisma.notification.findMany({
-          where: { userId: authedReq.userId },
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: perPage,
-        }),
-        prisma.notification.count({
-          where: { userId: authedReq.userId },
-        }),
-      ]);
+    const userId = c.get('userId');
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: perPage,
+      }),
+      prisma.notification.count({
+        where: { userId },
+      }),
+    ]);
 
-      const response: ApiResponse<any[]> = {
-        success: true,
-        data: notifications,
-        meta: {
-          page,
-          perPage,
-          total,
-          hasMore: skip + perPage < total,
-        },
-      };
+    const response: ApiResponse<any[]> = {
+      success: true,
+      data: notifications,
+      meta: {
+        page,
+        perPage,
+        total,
+        hasMore: skip + perPage < total,
+      },
+    };
 
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
+    return c.json(response);
   }
 );
 
@@ -115,52 +107,50 @@ router.get(
  * PUT /api/notifications/:id/read
  * Mark a notification as read
  */
-router.put(
+app.put(
   '/:id/read',
   authenticate,
-  validate([
-    param('id').isUUID().withMessage('Valid notification ID is required'),
-  ]),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
+  async (c) => {
+    const id = c.req.param('id')!;
 
-      // Ensure the notification belongs to this user
-      const authedReq = req as AuthenticatedRequest;
-      const notification = await prisma.notification.findFirst({
-        where: {
-          id,
-          userId: authedReq.userId,
-        },
-      });
-
-      if (!notification) {
-        throw Errors.notFound('Notification');
-      }
-
-      if (notification.readAt) {
-        // Already read — return as-is
-        return res.json({
-          success: true,
-          data: notification,
-        } as ApiResponse<any>);
-      }
-
-      const updated = await prisma.notification.update({
-        where: { id },
-        data: { readAt: new Date() },
-      });
-
-      const response: ApiResponse<any> = {
-        success: true,
-        data: updated,
-      };
-
-      res.json(response);
-    } catch (error) {
-      next(error);
+    // Validate UUID inline
+    if (!UUID_REGEX.test(id)) {
+      throw Errors.validationError({ id: ['Valid notification ID is required'] });
     }
+
+    // Ensure the notification belongs to this user
+    const userId = c.get('userId');
+    const notification = await prisma.notification.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!notification) {
+      throw Errors.notFound('Notification');
+    }
+
+    if (notification.readAt) {
+      // Already read -- return as-is
+      return c.json({
+        success: true,
+        data: notification,
+      } as ApiResponse<any>);
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id },
+      data: { readAt: new Date() },
+    });
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: updated,
+    };
+
+    return c.json(response);
   }
 );
 
-export default router;
+export default app;

@@ -1,7 +1,10 @@
-import request from 'supertest';
-import express from 'express';
-import questsRouter from '../../routes/quests';
+import { Hono } from 'hono';
+import questRoutes from '../../routes/quests';
 import { errorHandler } from '../../middleware/errorHandler';
+
+// Hoist constants before mock factory runs
+const VALID_UUID = '123e4567-e89b-12d3-a456-426614174000';
+const USER_UUID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
 // Explicit prisma factory mock — automock cannot discover Prisma's runtime model delegates.
 // $transaction executes the callback with the same mock models so tests for transactional
@@ -35,30 +38,27 @@ jest.mock('../../lib/prisma', () => {
       ...models,
       // Pass the same model stubs as the tx argument so routes using $transaction
       // still resolve against the same jest.fn() mocks defined above.
-      $transaction: jest.fn((cb: Function) => cb(models)),
+      $transaction: jest.fn((cb: (tx: typeof models) => unknown) => cb(models)),
     },
   };
 });
 
-// Mock auth middleware — authenticate just injects a userId; optionalAuth is a passthrough
+// Mock auth middleware — authenticate sets userId via Hono context; optionalAuth is a passthrough
 jest.mock('../../middleware/auth', () => ({
-  authenticate: (req: any, _res: any, next: any) => {
-    req.userId = USER_UUID;
-    next();
+  authenticate: async (c: any, next: any) => {
+    c.set('userId', USER_UUID);
+    await next();
   },
-  optionalAuth: (_req: any, _res: any, next: any) => next(),
+  optionalAuth: async (_c: any, next: any) => {
+    await next();
+  },
 }));
 
 import { prisma } from '../../lib/prisma';
 
-// Hoist constants before mock factory runs
-const VALID_UUID = '123e4567-e89b-12d3-a456-426614174000';
-const USER_UUID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-
-const app = express();
-app.use(express.json());
-app.use('/api/quests', questsRouter);
-app.use(errorHandler);
+const app = new Hono();
+app.route('/api/quests', questRoutes);
+app.onError((err, c) => errorHandler(err, c));
 
 // --- Shared mock fixtures ---
 
@@ -115,33 +115,36 @@ describe('Quest Routes', () => {
     it('returns 200 with array of quests', async () => {
       (prisma.quest.findMany as jest.Mock).mockResolvedValue([mockQuest]);
 
-      const res = await request(app).get('/api/quests/library');
+      const res = await app.request('/api/quests/library');
+      const body: any = await res.json();
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data).toHaveLength(1);
-      expect(res.body.data[0].id).toBe(VALID_UUID);
+      expect(body.success).toBe(true);
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].id).toBe(VALID_UUID);
     });
 
     it('returns 200 with empty array when no quests exist', async () => {
       (prisma.quest.findMany as jest.Mock).mockResolvedValue([]);
 
-      const res = await request(app).get('/api/quests/library');
+      const res = await app.request('/api/quests/library');
+      const body: any = await res.json();
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toEqual([]);
+      expect(body.success).toBe(true);
+      expect(body.data).toEqual([]);
     });
 
     it('returns 500 on DB error', async () => {
       (prisma.quest.findMany as jest.Mock).mockRejectedValue(new Error('DB connection failed'));
 
-      const res = await request(app).get('/api/quests/library');
+      const res = await app.request('/api/quests/library');
+      const body: any = await res.json();
 
       expect(res.status).toBe(500);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('INTERNAL_ERROR');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -152,12 +155,13 @@ describe('Quest Routes', () => {
     it('returns 200 with user quests when authenticated', async () => {
       (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([mockUserQuest]);
 
-      const res = await request(app).get('/api/quests/user');
+      const res = await app.request('/api/quests/user');
+      const body: any = await res.json();
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data[0].userId).toBe(USER_UUID);
+      expect(body.success).toBe(true);
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data[0].userId).toBe(USER_UUID);
     });
 
     it('returns 401 when no authorization header is provided (real middleware)', async () => {
@@ -166,19 +170,18 @@ describe('Quest Routes', () => {
       // real JWT-checking middleware for this specific test.
       const { authenticate: realAuthenticate } = jest.requireActual('../../middleware/auth');
 
-      const protectedApp = express();
-      protectedApp.use(express.json());
-      // Minimal handler: just echo success so we can confirm auth blocked it
-      protectedApp.get('/api/quests/user', realAuthenticate, (_req: any, res: any) => {
-        res.json({ success: true, data: [] });
+      const protectedApp = new Hono();
+      protectedApp.get('/api/quests/user', realAuthenticate, (c: any) => {
+        return c.json({ success: true, data: [] });
       });
-      protectedApp.use(errorHandler);
+      protectedApp.onError((err: any, c: any) => errorHandler(err, c));
 
-      const res = await request(protectedApp).get('/api/quests/user');
+      const res = await protectedApp.request('/api/quests/user');
+      const body: any = await res.json();
 
       expect(res.status).toBe(401);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('UNAUTHORIZED');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('UNAUTHORIZED');
     });
   });
 
@@ -191,13 +194,16 @@ describe('Quest Routes', () => {
       (prisma.userQuest.findFirst as jest.Mock).mockResolvedValue(null);
       (prisma.userQuest.create as jest.Mock).mockResolvedValue(mockUserQuest);
 
-      const res = await request(app)
-        .post('/api/quests/activate')
-        .send({ questId: VALID_UUID });
+      const res = await app.request('/api/quests/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questId: VALID_UUID }),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(201);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.questId).toBe(VALID_UUID);
+      expect(body.success).toBe(true);
+      expect(body.data.questId).toBe(VALID_UUID);
     });
 
     it('returns 200 when reactivating a previously deactivated quest', async () => {
@@ -208,51 +214,63 @@ describe('Quest Routes', () => {
       (prisma.userQuest.findFirst as jest.Mock).mockResolvedValue(deactivatedUserQuest);
       (prisma.userQuest.update as jest.Mock).mockResolvedValue(reactivatedUserQuest);
 
-      const res = await request(app)
-        .post('/api/quests/activate')
-        .send({ questId: VALID_UUID });
+      const res = await app.request('/api/quests/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questId: VALID_UUID }),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.isActive).toBe(true);
+      expect(body.success).toBe(true);
+      expect(body.data.isActive).toBe(true);
     });
 
     it('returns 409 when quest is already active', async () => {
       (prisma.quest.findUnique as jest.Mock).mockResolvedValue(mockQuest);
       (prisma.userQuest.findFirst as jest.Mock).mockResolvedValue(mockUserQuest); // already active
 
-      const res = await request(app)
-        .post('/api/quests/activate')
-        .send({ questId: VALID_UUID });
+      const res = await app.request('/api/quests/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questId: VALID_UUID }),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(409);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('CONFLICT');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('CONFLICT');
     });
 
     it('returns 404 when quest does not exist', async () => {
       (prisma.quest.findUnique as jest.Mock).mockResolvedValue(null);
 
-      const res = await request(app)
-        .post('/api/quests/activate')
-        .send({ questId: VALID_UUID });
+      const res = await app.request('/api/quests/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questId: VALID_UUID }),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(404);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('NOT_FOUND');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('NOT_FOUND');
     });
 
     it.each([
       ['invalid UUID value', { questId: 'not-a-uuid' }],
       ['missing questId', {}],
-    ])('returns 422 for validation error: %s', async (_label, body) => {
-      const res = await request(app)
-        .post('/api/quests/activate')
-        .send(body);
+    ])('returns 422 for validation error: %s', async (_label, reqBody) => {
+      const res = await app.request('/api/quests/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(422);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 
@@ -280,54 +298,66 @@ describe('Quest Routes', () => {
       (prisma.userQuest.update as jest.Mock).mockResolvedValue({ ...userQuestWithQuest, totalCompletions: 1 });
       (prisma.user.update as jest.Mock).mockResolvedValue({});
 
-      const res = await request(app)
-        .post(`/api/quests/${VALID_UUID}/complete`)
-        .send({});
+      const res = await app.request(`/api/quests/${VALID_UUID}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(201);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveProperty('completion');
-      expect(res.body.data).toHaveProperty('userQuest');
-      expect(res.body.data).toHaveProperty('xpEarned');
-      expect(res.body.data.xpEarned).toBe(5);
+      expect(body.success).toBe(true);
+      expect(body.data).toHaveProperty('completion');
+      expect(body.data).toHaveProperty('userQuest');
+      expect(body.data).toHaveProperty('xpEarned');
+      expect(body.data.xpEarned).toBe(5);
     });
 
     it('returns 404 when userQuest not found', async () => {
       (prisma.userQuest.findFirst as jest.Mock).mockResolvedValue(null);
 
-      const res = await request(app)
-        .post(`/api/quests/${VALID_UUID}/complete`)
-        .send({});
+      const res = await app.request(`/api/quests/${VALID_UUID}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(404);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('NOT_FOUND');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('NOT_FOUND');
     });
 
     it('returns 400 when max completions for period are reached', async () => {
       (prisma.userQuest.findFirst as jest.Mock).mockResolvedValue(userQuestWithQuest);
       (prisma.questCompletion.count as jest.Mock).mockResolvedValue(1); // already at max (1)
 
-      const res = await request(app)
-        .post(`/api/quests/${VALID_UUID}/complete`)
-        .send({});
+      const res = await app.request(`/api/quests/${VALID_UUID}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('BAD_REQUEST');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('BAD_REQUEST');
     });
 
     it.each([
       ['invalid UUID param', 'not-a-uuid', {}],
       ['non-numeric value field', VALID_UUID, { value: 'not-a-number' }],
-    ])('returns 422 for validation error: %s', async (_label, id, body) => {
-      const res = await request(app)
-        .post(`/api/quests/${id}/complete`)
-        .send(body);
+    ])('returns 422 for validation error: %s', async (_label, id, reqBody) => {
+      const res = await app.request(`/api/quests/${id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(422);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 
@@ -339,29 +369,38 @@ describe('Quest Routes', () => {
       (prisma.userQuest.findFirst as jest.Mock).mockResolvedValue(mockUserQuest);
       (prisma.userQuest.update as jest.Mock).mockResolvedValue({ ...mockUserQuest, isActive: false });
 
-      const res = await request(app).delete(`/api/quests/${VALID_UUID}`);
+      const res = await app.request(`/api/quests/${VALID_UUID}`, {
+        method: 'DELETE',
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.message).toMatch(/deactivated/i);
+      expect(body.success).toBe(true);
+      expect(body.data.message).toMatch(/deactivated/i);
     });
 
     it('returns 404 when userQuest not found', async () => {
       (prisma.userQuest.findFirst as jest.Mock).mockResolvedValue(null);
 
-      const res = await request(app).delete(`/api/quests/${VALID_UUID}`);
+      const res = await app.request(`/api/quests/${VALID_UUID}`, {
+        method: 'DELETE',
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(404);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('NOT_FOUND');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('NOT_FOUND');
     });
 
     it('returns 422 for invalid UUID param', async () => {
-      const res = await request(app).delete('/api/quests/not-a-valid-uuid');
+      const res = await app.request('/api/quests/not-a-valid-uuid', {
+        method: 'DELETE',
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(422);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 
@@ -399,41 +438,50 @@ describe('Quest Routes', () => {
       (prisma.quest.create as jest.Mock).mockResolvedValue(mockCreatedQuest);
       (prisma.userQuest.create as jest.Mock).mockResolvedValue(mockCustomUserQuest);
 
-      const res = await request(app)
-        .post('/api/quests/custom')
-        .send(validCustomQuestBody);
+      const res = await app.request('/api/quests/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validCustomQuestBody),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(201);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.quest.isCustom).toBe(true);
+      expect(body.success).toBe(true);
+      expect(body.data.quest.isCustom).toBe(true);
     });
 
     it('returns 400 when free user has reached 3 custom quest limit', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: USER_UUID, isPremium: false });
       (prisma.quest.count as jest.Mock).mockResolvedValue(3); // at free limit
 
-      const res = await request(app)
-        .post('/api/quests/custom')
-        .send(validCustomQuestBody);
+      const res = await app.request('/api/quests/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validCustomQuestBody),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('BAD_REQUEST');
-      expect(res.body.error.message).toMatch(/3/);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('BAD_REQUEST');
+      expect(body.error.message).toMatch(/3/);
     });
 
     it('returns 400 when premium user has reached 50 custom quest limit', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: USER_UUID, isPremium: true });
       (prisma.quest.count as jest.Mock).mockResolvedValue(50); // at premium limit
 
-      const res = await request(app)
-        .post('/api/quests/custom')
-        .send(validCustomQuestBody);
+      const res = await app.request('/api/quests/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validCustomQuestBody),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('BAD_REQUEST');
-      expect(res.body.error.message).toMatch(/50/);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('BAD_REQUEST');
+      expect(body.error.message).toMatch(/50/);
     });
 
     it.each([
@@ -442,14 +490,17 @@ describe('Quest Routes', () => {
       ['invalid frequency', { ...validCustomQuestBody, frequency: 'hourly' }],
       ['baseXP below range (0)', { ...validCustomQuestBody, baseXP: 0 }],
       ['baseXP above range (11)', { ...validCustomQuestBody, baseXP: 11 }],
-    ])('returns 422 for validation error: %s', async (_label, body) => {
-      const res = await request(app)
-        .post('/api/quests/custom')
-        .send(body);
+    ])('returns 422 for validation error: %s', async (_label, reqBody) => {
+      const res = await app.request('/api/quests/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+      });
+      const body: any = await res.json();
 
       expect(res.status).toBe(422);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 });

@@ -2805,6 +2805,8 @@ __metadata:
   resolution: "@dydyd/backend@workspace:apps/backend"
   dependencies:
     "@dydyd/shared": "workspace:*"
+    "@hono/node-server": "npm:^1.14.0"
+    "@hono/zod-validator": "npm:^0.5.0"
     "@prisma/client": "npm:5.22.0"
     "@types/bcryptjs": "npm:^2.4.6"
     "@types/compression": "npm:^1.7.5"
@@ -2826,6 +2828,7 @@ __metadata:
     express-validator: "npm:^7.0.1"
     firebase-admin: "npm:^12.0.0"
     helmet: "npm:^7.1.0"
+    hono: "npm:^4.7.0"
     jest: "npm:^29.7.0"
     jsonwebtoken: "npm:^9.0.2"
     morgan: "npm:^1.10.0"
@@ -2836,6 +2839,7 @@ __metadata:
     ts-node-dev: "npm:^2.0.0"
     typescript: "npm:^5.3.0"
     uuid: "npm:^9.0.0"
+    zod: "npm:^3.24.0"
   languageName: unknown
   linkType: soft
 
@@ -3581,6 +3585,25 @@ __metadata:
   dependencies:
     "@hapi/hoek": "npm:^9.0.0"
   checksum: b16b06d9357947149e032bdf10151eb71aea8057c79c4046bf32393cb89d0d0f7ca501c40c0f7534a5ceca078de0700d2257ac855c15e59fe4e00bba2f25c86f
+  languageName: node
+  linkType: hard
+
+"@hono/node-server@npm:^1.14.0":
+  version: 1.19.14
+  resolution: "@hono/node-server@npm:1.19.14"
+  peerDependencies:
+    hono: ^4
+  checksum: 41a099bb3705d96aac44b7a8db8805f2a22ce8a0f767a27b6d10b74a9964925df01c5f35d3631e882f8bcdeee3518884c30f40588ac8c960d88bf71048ba0df3
+  languageName: node
+  linkType: hard
+
+"@hono/zod-validator@npm:^0.5.0":
+  version: 0.5.0
+  resolution: "@hono/zod-validator@npm:0.5.0"
+  peerDependencies:
+    hono: ">=3.9.0"
+    zod: ^3.19.1
+  checksum: fe941a6ea6fb9e05ed4fc6f4e00aa8ca3bf34e582b5a79dcdbeae965927eaf944f1894e7bae2d9f16e17a57f94f8432d2811f34397254af1c454f3efd798a093
   languageName: node
   linkType: hard
 
@@ -9565,6 +9588,13 @@ __metadata:
   dependencies:
     react-is: "npm:^16.7.0"
   checksum: fe0889169e845d738b59b64badf5e55fa3cf20454f9203d1eb088df322d49d4318df774828e789898dcb280e8a5521bb59b3203385662ca5e9218a6ca5820e74
+  languageName: node
+  linkType: hard
+
+"hono@npm:^4.7.0":
+  version: 4.12.28
+  resolution: "hono@npm:4.12.28"
+  checksum: ae40349d1e2bbc3cd1f08083644287dc8cbdb9ca6ed8f1bcd5cd896a72763a79dd38a4153ef9bfb4102ae8f2203c36fa9033863f03431f9f52d21f4d720dbce5
   languageName: node
   linkType: hard
 
@@ -16396,5 +16426,12 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: dceb44c28578b31641e13695d200d34ec4ab3966a5729814d5445b194933c096b7ced71494ce53a0e8820685d1d010df8b2422e5bf2cdea7e469d97ffbea306f
+  languageName: node
+  linkType: hard
+
+"zod@npm:^3.24.0":
+  version: 3.25.76
+  resolution: "zod@npm:3.25.76"
+  checksum: 5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
   languageName: node
   linkType: hard
