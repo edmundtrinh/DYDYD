@@ -127,7 +127,7 @@ Always import domain types from `@dydyd/shared`, not defined locally in backend 
 ### Backend Test Infrastructure
 - **Jest + supertest** for route-level unit tests; mocked Prisma via `jest.mock('../../lib/prisma')`
 - **Docker Postgres** on port 5433 for integration tests: `docker compose -f docker-compose.test.yml up -d`
-- Test files live in `apps/backend/src/__tests__/routes/` — 7 suites, 162 tests covering all API endpoints
+- Test files live in `apps/backend/src/__tests__/routes/` — 7 suites, 166 tests covering all API endpoints
 - Test helpers in `apps/backend/src/__tests__/helpers/prisma.ts` (integration test DB utilities)
 - Jest setup in `apps/backend/jest.setup.js` — sets NODE_ENV=test, test secrets, DATABASE_URL
 
