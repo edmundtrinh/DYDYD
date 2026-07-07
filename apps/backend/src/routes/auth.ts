@@ -365,6 +365,18 @@ router.post(
         .digest('hex');
       const resetExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
+      // Revoke any existing unused reset tokens for this user before creating a new one,
+      // so a previously requested (but unused) token cannot be replayed.
+      await prisma.refreshToken.updateMany({
+        where: {
+          userId: user.id,
+          token: { startsWith: 'password_reset:' },
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        data: { revokedAt: new Date() },
+      });
+
       // Store the hashed token on the user via Prisma's JSON-safe metadata
       // We reuse the RefreshToken table with a special prefix to avoid a
       // schema migration. The token column stores the hash, and we mark
