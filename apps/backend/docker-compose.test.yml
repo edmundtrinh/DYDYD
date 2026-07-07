@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  test-db:
+    image: postgres:15-alpine
+    container_name: dydyd-test-db
+    environment:
+      POSTGRES_DB: dydyd_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    ports:
+      - "5433:5432"
+    volumes:
+      - dydyd_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d dydyd_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  dydyd_test_data:

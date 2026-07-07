@@ -4,7 +4,7 @@
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing';
 process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/dydyd_test';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5433/dydyd_test';
 
 // Increase timeout for database operations
 jest.setTimeout(10000);

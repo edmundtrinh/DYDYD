@@ -36,6 +36,58 @@ jobs:
       - name: Lint
         run: yarn lint:all
 
+  db-validate:
+    name: Database Schema Validation
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: dydyd_shadow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/dydyd_ci
+      SHADOW_DATABASE_URL: postgresql://ci:ci@localhost:5432/dydyd_shadow
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Create CI database
+        run: PGPASSWORD=ci createdb -h localhost -U ci dydyd_ci
+
+      - name: Validate Prisma schema
+        run: yarn workspace @dydyd/backend prisma validate
+
+      - name: Check migration drift
+        run: yarn workspace @dydyd/backend prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "$SHADOW_DATABASE_URL" --exit-code
+        working-directory: apps/backend
+
+      - name: Verify migrations apply cleanly
+        run: yarn workspace @dydyd/backend prisma migrate deploy
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
