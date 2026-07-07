@@ -1,58 +1,107 @@
 # Did You Do Your Dailies? (DYDYD)
 
-A gamified habit tracking mobile app that turns daily life into a game-like quest system. Earn XP, level up, and stay motivated to build healthy habits across all facets of life.
+**Turn daily habits into a game worth playing.**
 
-## 🎮 Features
+[![CI](https://github.com/edmundtrinh/DYDYD/actions/workflows/ci.yml/badge.svg)](https://github.com/edmundtrinh/DYDYD/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-- **Daily & Weekly Quests**: Complete habits and tasks to earn experience points
-- **Gamification**: XP system, levels, streaks, and badges
-- **Health Integration**: Auto-sync with Apple Health and Google Fit
-- **Cross-Platform**: iOS and Android with feature parity
-- **Widgets**: Home screen widgets for quick progress views
-- **Apple Watch**: Companion app for on-the-go tracking
-- **Progress Dashboard**: Visualize your habits and trends
+<!-- TODO: Add hero screenshot or demo GIF -->
 
-## 📁 Project Structure
+## Vision
 
+DYDYD replaces the phone homescreen with an all-in-one habit and routine builder. Instead of guilt-driven streak mechanics, it uses positive reinforcement -- XP, levels, badges, and quests -- to help scatter-brained, procrastination-prone people become their best selves, one day at a time.
+
+The app meets you where you are. Miss a day? Earn a Comeback Quest with bonus XP. Feeling overwhelmed? Start with one two-minute habit. DYDYD is built on the belief that consistency grows from encouragement, not punishment.
+
+## Features
+
+### Gamification Engine
+
+- 30+ predefined quests across 5 life categories
+- Exponential XP growth with 100 level titles
+- 20+ earnable badges with rarity tiers
+- Daily, weekly, and monthly quest frequencies
+- Streak tracking with compassionate design (streak freezes, comeback quests)
+
+### Health Integration
+
+- Apple HealthKit, Google Fit, Garmin, and Samsung Health
+- Quests can link to a health data source for tracking
+- Backend sync for cross-device health data
+
+### Mobile Experience
+
+- 19 screens with full navigation (auth, onboarding, main tabs)
+- Haptic feedback on key interactions
+- Quest completion celebrations and badge earned modals
+- Level up overlays with animations
+- Quest search and filtering
+- Streak calendar with progress visualization
+
+### Backend Services
+
+- JWT authentication with access and refresh tokens (15m / 7d)
+- 8 REST API route groups (auth, quests, user, progress, health, badges, notifications, system health)
+- Rate limiting (100 req/15min)
+- 11-model Prisma schema covering users, quests, completions, badges, notifications, devices
+
+### Production Readiness
+
+- Push notifications via Expo
+- Offline support with sync queue
+- Sentry error monitoring
+- Account deletion flow
+- Privacy policy and terms of service
+- EAS Build for cloud-based iOS and Android builds
+
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Monorepo
+        MOBILE["apps/mobile<br/>React Native + Expo"]
+        BACKEND["apps/backend<br/>Express + Prisma"]
+        SHARED["packages/shared<br/>Types, Constants, Utils"]
+    end
+
+    DB[(PostgreSQL)]
+
+    MOBILE -->|REST API| BACKEND
+    BACKEND -->|ORM| DB
+    SHARED -.->|imported by| MOBILE
+    SHARED -.->|imported by| BACKEND
 ```
-dydyd/
-├── apps/
-│   ├── mobile/          # React Native app (iOS & Android)
-│   └── backend/         # Node.js/Express API server
-├── packages/
-│   └── shared/          # Shared types, constants, and utilities
-├── turbo.json           # Turbo build configuration
-└── package.json         # Monorepo root configuration
-```
 
-## 🛠 Tech Stack
+The `packages/shared` package is the single source of truth for domain types (`User`, `Quest`, `Badge`, etc.), business constants (quest library, badge definitions, level titles), and utility functions (XP calculations, streak logic, validation). Both apps import from `@dydyd/shared` -- domain types are never redefined locally.
 
-### Mobile App
-- **Framework**: React Native 0.73 with TypeScript
-- **State Management**: Redux Toolkit with persistence
-- **Navigation**: React Navigation 6
-- **Health Data**: Apple HealthKit / Google Fit
+## Tech Stack
 
-### Backend
-- **Runtime**: Node.js with Express
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Auth**: JWT tokens
+| Layer | Technology |
+|-------|-----------|
+| Mobile Framework | React Native 0.73 + TypeScript |
+| Mobile Build | Expo + EAS Build (cloud CI for iOS and Android) |
+| State Management | Redux Toolkit + Redux Persist |
+| Navigation | React Navigation 6 |
+| Backend Runtime | Node.js + Express 4 |
+| Database | PostgreSQL + Prisma ORM |
+| Authentication | JWT (access + refresh tokens) |
+| Health Data | Apple HealthKit, Google Fit, Garmin, Samsung Health |
+| Push Notifications | Expo Notifications |
+| Error Monitoring | Sentry |
+| Monorepo | Yarn Workspaces + Turborepo |
+| CI/CD | GitHub Actions + EAS Build |
+| Language | TypeScript strict mode (all workspaces) |
 
-### Shared
-- TypeScript types and interfaces
-- Quest library with 50+ predefined habits
-- XP/level calculation utilities
-- Validation helpers
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
-- Yarn 4 (Corepack)
-- Xcode 15+ (for iOS)
-- Android Studio (for Android)
-- CocoaPods (for iOS dependencies)
+- Yarn 4 (via Corepack)
+- PostgreSQL (local or Docker)
+- Xcode 15+ (iOS development, macOS only)
+- Android Studio (Android development)
 
 ### Installation
 
@@ -61,54 +110,118 @@ dydyd/
    corepack enable
    ```
 
-2. **Install dependencies**:
+2. **Clone and install**:
    ```bash
+   git clone https://github.com/edmundtrinh/DYDYD.git
+   cd DYDYD
    yarn install
    ```
 
-3. **Build shared packages**:
+3. **Build the shared package** (required before backend or mobile can use it):
    ```bash
-   yarn build
+   yarn shared build
    ```
 
-4. **Run the mobile app**:
+4. **Set up the backend environment**:
    ```bash
-   # iOS
-   cd apps/mobile
-   yarn ios
-   
-   # Android
-   cd apps/mobile
-   yarn android
+   cp apps/backend/.env.example apps/backend/.env
+   ```
+   Then edit `apps/backend/.env` and configure:
+   - `DATABASE_URL` -- your PostgreSQL connection string
+   - `JWT_SECRET` -- secret for access token signing
+   - `JWT_REFRESH_SECRET` -- secret for refresh token signing
+
+5. **Run database migrations**:
+   ```bash
+   yarn workspace @dydyd/backend db:migrate
    ```
 
-5. **Run the backend** (when implemented):
+6. **Start development servers**:
    ```bash
-   cd apps/backend
-   yarn dev
+   # Terminal 1: Backend with hot reload
+   yarn start:backend
+
+   # Terminal 2: Metro bundler for React Native
+   yarn start:mobile
    ```
 
-## 📱 Quest Categories
+### Building for Devices
+
+DYDYD uses EAS Build for cloud-based builds -- iOS builds work from any OS, including Windows.
+
+```bash
+# From apps/mobile/
+eas build --profile development --platform all    # Dev client builds
+eas build --profile preview --platform ios        # iOS IPA (internal distribution)
+eas build --profile production --platform all     # Store-ready builds
+```
+
+See the [EAS Build documentation](https://docs.expo.dev/build/introduction/) for account setup and configuration.
+
+## Project Structure
+
+```
+DYDYD/
+├── apps/
+│   ├── backend/                 # Express API server
+│   │   ├── prisma/              #   Prisma schema and migrations
+│   │   └── src/
+│   │       ├── middleware/      #   Auth, rate limiting, error handling
+│   │       ├── routes/          #   8 route groups
+│   │       ├── lib/             #   Prisma client, streak logic
+│   │       └── __tests__/       #   Jest + supertest route tests
+│   └── mobile/                  # React Native app
+│       └── src/
+│           ├── screens/         #   19 screens
+│           ├── components/      #   14 reusable components
+│           ├── store/           #   Redux slices (7) + store config
+│           ├── services/        #   API client, health integrations
+│           ├── navigation/      #   Auth, onboarding, main tab navigators
+│           └── theme/           #   Design tokens, typography
+├── packages/
+│   └── shared/                  # Shared TypeScript package
+│       └── src/
+│           ├── types.ts         #   All domain interfaces and enums
+│           ├── constants.ts     #   Quest library, badges, level titles, XP config
+│           └── utils.ts         #   XP calculations, streak logic, validation
+├── specs/                       # Product specs, roadmap, decision records
+├── turbo.json                   # Turborepo pipeline configuration
+└── package.json                 # Monorepo root (Yarn Workspaces)
+```
+
+## Testing
+
+```bash
+yarn test:all                                      # All workspaces
+yarn workspace @dydyd/backend test                 # Backend (160+ tests, 7 suites)
+yarn workspace @dydyd/shared test                  # Shared (120 tests)
+yarn lint:all                                      # Lint all workspaces
+```
+
+CI runs tests, linting, TypeScript strict-mode typechecking, and Prisma schema validation on every push and pull request.
+
+## Quest Categories
 
 | Category | Examples |
 |----------|----------|
-| 🏃 Physical Health | Steps, sleep, exercise, hydration |
-| 🧠 Mental Wellness | Meditation, journaling, reading |
-| 💼 Career & Productivity | Job applications, learning, networking |
-| ❤️ Relationships & Social | Family time, social outings, calls |
-| 🏠 Home & Chores | Cleaning, laundry, cooking |
+| Physical Health | Steps, sleep, exercise, hydration |
+| Mental Wellness | Meditation, journaling, reading |
+| Career & Productivity | Job applications, learning, networking |
+| Relationships & Social | Family time, social outings, phone calls |
+| Home & Chores | Cleaning, laundry, cooking, groceries |
 
-## 🎯 XP System
+## Roadmap
 
-- **Level Formula**: `baseXP * (growthRate ^ (level - 1))`
-- **Base XP**: 100 per level
-- **Growth Rate**: 1.15x multiplier
-- **Max Level**: 100
+DYDYD is currently entering **Phase 4A: The Vision** -- interactive iOS widgets, Apple Watch companion app, and compassionate streak design. This phase represents the core product thesis: the app should live on your homescreen and your wrist, not buried in a folder.
 
-## 📄 License
+For the full roadmap including completed phases and future plans, see [specs/roadmap.md](specs/roadmap.md).
 
-This project is proprietary. All rights reserved.
+<!-- TODO: Add screenshots of quest completion, badge earned, and streak calendar -->
 
-## 🤝 Contributing
+## Contributing
 
-This is a private project. Please contact the maintainers for contribution guidelines.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get started, coding standards, and the pull request process.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
