@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { authenticate, AuthEnv } from '../middleware/auth';
+import { Prisma } from '@prisma/client';
+import { authenticate } from '../middleware/auth';
 import { validateQuery } from '../middleware/validate';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
@@ -13,7 +14,15 @@ import {
   QuestCategory,
 } from '@dydyd/shared';
 
-const app = new Hono<AuthEnv>();
+type Env = {
+  Variables: {
+    validatedQuery: unknown;
+    userId: string;
+    user: { id: string; email: string };
+  };
+};
+
+const app = new Hono<Env>();
 
 /**
  * GET /api/progress/stats
@@ -487,15 +496,7 @@ const historyQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(20),
   questId: z.string().uuid().optional(),
-  category: z
-    .enum([
-      'physical_health',
-      'mental_wellness',
-      'career_productivity',
-      'relationships_social',
-      'home_chores',
-    ])
-    .optional(),
+  category: z.nativeEnum(QuestCategory).optional(),
 });
 
 /**
@@ -647,12 +648,11 @@ app.get(
   async (c) => {
     const userId = c.get('userId');
 
-    // Re-parse query to get validated/coerced values
-    const query = historyQuerySchema.parse(c.req.query());
-    const { page, perPage, questId, category } = query;
+    // Use validated/coerced values stored by validateQuery middleware
+    const { page, perPage, questId, category } = c.get('validatedQuery') as z.infer<typeof historyQuerySchema>;
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.QuestCompletionWhereInput = {
       userQuest: {
         userId,
         ...(questId ? { questId } : {}),
@@ -687,7 +687,7 @@ app.get(
       }),
     ]);
 
-    const data = completions.map((completion: any) => ({
+    const data = completions.map((completion) => ({
       id: completion.id,
       questName: completion.userQuest.quest.name,
       questCategory: completion.userQuest.quest.category,
