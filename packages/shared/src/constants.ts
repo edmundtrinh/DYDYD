@@ -583,6 +583,24 @@ export const PREDEFINED_BADGES: Omit<Badge, 'id'>[] = [
   },
 ];
 
+// -------------------- Compassionate Streak Config --------------------
+
+export const STREAK_FREEZE_CONFIG = {
+  maxFreezes: 3,
+  freezeEarnInterval: 7, // earn 1 freeze every 7 active days
+} as const;
+
+export const COMEBACK_CONFIG = {
+  maxMissedDays: 14,
+  bonusXPMultiplier: 1.5,
+} as const;
+
+export const PROGRESSIVE_ONBOARDING = {
+  initialQuestLimit: 3,
+  maxQuestsPerUnlock: 2,
+  daysToUnlockMore: 3,
+} as const;
+
 // -------------------- Category Metadata --------------------
 
 export const CATEGORY_METADATA: Record<

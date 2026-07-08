@@ -22,6 +22,11 @@ model User {
   level              Int                @default(1)
   isPremium          Boolean            @default(false)
   premiumExpiresAt   DateTime?
+  streakFreezes      Int                @default(0)
+  maxStreakFreezes    Int                @default(3)
+  streakFreezeUsedAt DateTime?
+  activeDaysCount    Int                @default(0)
+  lastActiveDate     DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
