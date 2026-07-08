@@ -15,6 +15,7 @@ jest.mock('../../lib/prisma', () => ({
       aggregate: jest.fn(),
       groupBy: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
     },
     userBadge: {
       count: jest.fn(),
@@ -389,6 +390,259 @@ describe('GET /api/progress/leaderboard', () => {
 
   it('should return 401 when not authenticated', async () => {
     const res = await app.request('/api/progress/leaderboard');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('GET /api/progress/weekly-digest', () => {
+  it('should return digest with current and previous week data', async () => {
+    (prisma.questCompletion.count as jest.Mock).mockResolvedValueOnce(10); // current week
+    (prisma.questCompletion.aggregate as jest.Mock).mockResolvedValueOnce({
+      _sum: { xpEarned: 150 },
+    });
+    (prisma.userQuest.count as jest.Mock).mockResolvedValue(5);
+    (calculateOverallDayStreak as jest.Mock).mockResolvedValue({
+      currentDayStreak: 3,
+      longestDayStreak: 10,
+    });
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: USER_UUID,
+      createdAt: new Date('2025-01-01'),
+    });
+    // Previous week
+    (prisma.questCompletion.count as jest.Mock).mockResolvedValueOnce(8);
+    (prisma.questCompletion.aggregate as jest.Mock).mockResolvedValueOnce({
+      _sum: { xpEarned: 100 },
+    });
+
+    const res = await app.request('/api/progress/weekly-digest', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.data.currentWeek).toEqual(
+      expect.objectContaining({
+        totalCompletions: 10,
+        totalXP: 150,
+        activeQuests: 5,
+        streakLength: 3,
+      })
+    );
+    expect(body.data.previousWeek).not.toBeNull();
+    expect(body.data.previousWeek.totalCompletions).toBe(8);
+    expect(body.data.previousWeek.totalXP).toBe(100);
+    expect(body.data.comparison).not.toBeNull();
+    expect(body.data.comparison.completionsDelta).toBe(2);
+    expect(body.data.comparison.xpDelta).toBe(50);
+  });
+
+  it('should return null previousWeek and comparison for first-week users', async () => {
+    (prisma.questCompletion.count as jest.Mock).mockResolvedValue(3);
+    (prisma.questCompletion.aggregate as jest.Mock).mockResolvedValue({
+      _sum: { xpEarned: 30 },
+    });
+    (prisma.userQuest.count as jest.Mock).mockResolvedValue(2);
+    (calculateOverallDayStreak as jest.Mock).mockResolvedValue({
+      currentDayStreak: 1,
+      longestDayStreak: 1,
+    });
+    // User created this week
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: USER_UUID,
+      createdAt: new Date(), // today
+    });
+
+    const res = await app.request('/api/progress/weekly-digest', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data.previousWeek).toBeNull();
+    expect(body.data.comparison).toBeNull();
+  });
+
+  it('should handle zero previous completions without division by zero', async () => {
+    (prisma.questCompletion.count as jest.Mock)
+      .mockResolvedValueOnce(5) // current
+      .mockResolvedValueOnce(0); // previous
+    (prisma.questCompletion.aggregate as jest.Mock)
+      .mockResolvedValueOnce({ _sum: { xpEarned: 50 } }) // current
+      .mockResolvedValueOnce({ _sum: { xpEarned: 0 } }); // previous
+    (prisma.userQuest.count as jest.Mock).mockResolvedValue(3);
+    (calculateOverallDayStreak as jest.Mock).mockResolvedValue({
+      currentDayStreak: 2,
+      longestDayStreak: 5,
+    });
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: USER_UUID,
+      createdAt: new Date('2025-01-01'),
+    });
+
+    const res = await app.request('/api/progress/weekly-digest', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data.comparison.completionsPercent).toBe(100);
+    expect(body.data.comparison.xpPercent).toBe(100);
+  });
+
+  it('should return 401 when not authenticated', async () => {
+    const res = await app.request('/api/progress/weekly-digest');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('GET /api/progress/history', () => {
+  const QUEST_UUID = '00000000-0000-4000-a000-000000000020';
+
+  const mockCompletions = [
+    {
+      id: 'comp-1',
+      userQuestId: UQ_UUID,
+      completedAt: new Date('2026-07-08T10:00:00Z'),
+      timeBucket: 'morning',
+      xpEarned: 5,
+      value: null,
+      source: 'manual',
+      notes: null,
+      userQuest: {
+        quest: {
+          name: 'Morning Run',
+          category: 'physical_health',
+        },
+      },
+    },
+    {
+      id: 'comp-2',
+      userQuestId: UQ_UUID,
+      completedAt: new Date('2026-07-07T15:00:00Z'),
+      timeBucket: 'afternoon',
+      xpEarned: 3,
+      value: 5000,
+      source: 'apple_health',
+      notes: 'Good run',
+      userQuest: {
+        quest: {
+          name: 'Step Counter',
+          category: 'physical_health',
+        },
+      },
+    },
+  ];
+
+  it('should return paginated completion history', async () => {
+    (prisma.questCompletion.count as jest.Mock).mockResolvedValue(2);
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue(mockCompletions);
+
+    const res = await app.request('/api/progress/history', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(2);
+    expect(body.data[0].questName).toBe('Morning Run');
+    expect(body.data[0].timeBucket).toBe('morning');
+    expect(body.data[1].questCategory).toBe('physical_health');
+    expect(body.meta).toEqual({
+      page: 1,
+      perPage: 20,
+      total: 2,
+      hasMore: false,
+    });
+  });
+
+  it('should filter by questId', async () => {
+    (prisma.questCompletion.count as jest.Mock).mockResolvedValue(1);
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([mockCompletions[0]]);
+
+    const res = await app.request(
+      `/api/progress/history?questId=${QUEST_UUID}`,
+      { headers: { Authorization: `Bearer ${validToken}` } }
+    );
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data).toHaveLength(1);
+    expect(prisma.questCompletion.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userQuest: expect.objectContaining({
+            questId: QUEST_UUID,
+          }),
+        }),
+      })
+    );
+  });
+
+  it('should filter by category', async () => {
+    (prisma.questCompletion.count as jest.Mock).mockResolvedValue(1);
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([mockCompletions[0]]);
+
+    const res = await app.request('/api/progress/history?category=physical_health', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data).toHaveLength(1);
+    expect(prisma.questCompletion.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userQuest: expect.objectContaining({
+            quest: { category: 'physical_health' },
+          }),
+        }),
+      })
+    );
+  });
+
+  it('should respect pagination parameters', async () => {
+    (prisma.questCompletion.count as jest.Mock).mockResolvedValue(50);
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([mockCompletions[0]]);
+
+    const res = await app.request('/api/progress/history?page=2&perPage=10', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.meta.page).toBe(2);
+    expect(body.meta.perPage).toBe(10);
+    expect(body.meta.total).toBe(50);
+    expect(body.meta.hasMore).toBe(true);
+    expect(prisma.questCompletion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 10,
+        take: 10,
+      })
+    );
+  });
+
+  it('should return 422 for invalid category', async () => {
+    const res = await app.request('/api/progress/history?category=invalid_cat', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+
+    expect(res.status).toBe(422);
+  });
+
+  it('should return 422 for invalid questId format', async () => {
+    const res = await app.request('/api/progress/history?questId=not-a-uuid', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+
+    expect(res.status).toBe(422);
+  });
+
+  it('should return 401 when not authenticated', async () => {
+    const res = await app.request('/api/progress/history');
     expect(res.status).toBe(401);
   });
 });

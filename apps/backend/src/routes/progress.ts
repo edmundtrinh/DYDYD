@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { authenticate, AuthEnv } from '../middleware/auth';
+import { validateQuery } from '../middleware/validate';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { calculateOverallDayStreak, calculateUserQuestStreak } from '../lib/streaks';
@@ -476,6 +478,237 @@ app.get(
     };
 
     return c.json(response);
+  }
+);
+
+// --- Zod schemas for query validation ---
+
+const historyQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce.number().int().min(1).max(100).default(20),
+  questId: z.string().uuid().optional(),
+  category: z
+    .enum([
+      'physical_health',
+      'mental_wellness',
+      'career_productivity',
+      'relationships_social',
+      'home_chores',
+    ])
+    .optional(),
+});
+
+/**
+ * GET /api/progress/weekly-digest
+ * Get a comparison of current vs previous week completions and XP
+ */
+app.get(
+  '/weekly-digest',
+  authenticate,
+  async (c) => {
+    const userId = c.get('userId');
+
+    // Use Sunday-start convention consistent with existing /weekly endpoint
+    const now = new Date();
+    const currentWeekStart = new Date(now);
+    currentWeekStart.setDate(now.getDate() - now.getDay());
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    const currentWeekEnd = new Date(currentWeekStart);
+    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+    currentWeekEnd.setHours(23, 59, 59, 999);
+
+    const previousWeekStart = new Date(currentWeekStart);
+    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+
+    const previousWeekEnd = new Date(currentWeekStart);
+    previousWeekEnd.setMilliseconds(-1); // 1ms before current week
+
+    // Get current week stats
+    const [currentCompletions, currentXP, activeQuests] = await Promise.all([
+      prisma.questCompletion.count({
+        where: {
+          userQuest: { userId },
+          completedAt: { gte: currentWeekStart, lte: currentWeekEnd },
+        },
+      }),
+      prisma.questCompletion.aggregate({
+        where: {
+          userQuest: { userId },
+          completedAt: { gte: currentWeekStart, lte: currentWeekEnd },
+        },
+        _sum: { xpEarned: true },
+      }),
+      prisma.userQuest.count({
+        where: { userId, isActive: true },
+      }),
+    ]);
+
+    const currentTotalXP = currentXP._sum.xpEarned ?? 0;
+
+    // Get current streak
+    const { currentDayStreak } = await calculateOverallDayStreak(userId);
+
+    // Determine if user had a previous week (check if user existed before current week)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { createdAt: true },
+    });
+
+    const isFirstWeek = !user || user.createdAt >= currentWeekStart;
+
+    let previousWeek: {
+      weekStart: string;
+      weekEnd: string;
+      totalCompletions: number;
+      totalXP: number;
+    } | null = null;
+
+    let comparison: {
+      completionsDelta: number;
+      completionsPercent: number;
+      xpDelta: number;
+      xpPercent: number;
+    } | null = null;
+
+    if (!isFirstWeek) {
+      const [prevCompletions, prevXP] = await Promise.all([
+        prisma.questCompletion.count({
+          where: {
+            userQuest: { userId },
+            completedAt: { gte: previousWeekStart, lte: previousWeekEnd },
+          },
+        }),
+        prisma.questCompletion.aggregate({
+          where: {
+            userQuest: { userId },
+            completedAt: { gte: previousWeekStart, lte: previousWeekEnd },
+          },
+          _sum: { xpEarned: true },
+        }),
+      ]);
+
+      const prevTotalXP = prevXP._sum.xpEarned ?? 0;
+
+      previousWeek = {
+        weekStart: previousWeekStart.toISOString(),
+        weekEnd: previousWeekEnd.toISOString(),
+        totalCompletions: prevCompletions,
+        totalXP: prevTotalXP,
+      };
+
+      const completionsDelta = currentCompletions - prevCompletions;
+      const xpDelta = currentTotalXP - prevTotalXP;
+
+      comparison = {
+        completionsDelta,
+        completionsPercent:
+          prevCompletions === 0
+            ? currentCompletions > 0
+              ? 100
+              : 0
+            : Math.round((completionsDelta / prevCompletions) * 100),
+        xpDelta,
+        xpPercent:
+          prevTotalXP === 0
+            ? currentTotalXP > 0
+              ? 100
+              : 0
+            : Math.round((xpDelta / prevTotalXP) * 100),
+      };
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        currentWeek: {
+          weekStart: currentWeekStart.toISOString(),
+          weekEnd: currentWeekEnd.toISOString(),
+          totalCompletions: currentCompletions,
+          totalXP: currentTotalXP,
+          activeQuests,
+          streakLength: currentDayStreak,
+        },
+        previousWeek,
+        comparison,
+      },
+    });
+  }
+);
+
+/**
+ * GET /api/progress/history
+ * Get paginated completion history with optional filters
+ */
+app.get(
+  '/history',
+  authenticate,
+  validateQuery(historyQuerySchema),
+  async (c) => {
+    const userId = c.get('userId');
+
+    // Re-parse query to get validated/coerced values
+    const query = historyQuerySchema.parse(c.req.query());
+    const { page, perPage, questId, category } = query;
+
+    // Build where clause
+    const where: any = {
+      userQuest: {
+        userId,
+        ...(questId ? { questId } : {}),
+        ...(category
+          ? {
+              quest: { category },
+            }
+          : {}),
+      },
+    };
+
+    // Get total count and paginated results in parallel
+    const [total, completions] = await Promise.all([
+      prisma.questCompletion.count({ where }),
+      prisma.questCompletion.findMany({
+        where,
+        include: {
+          userQuest: {
+            include: {
+              quest: {
+                select: {
+                  name: true,
+                  category: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { completedAt: 'desc' },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      }),
+    ]);
+
+    const data = completions.map((completion: any) => ({
+      id: completion.id,
+      questName: completion.userQuest.quest.name,
+      questCategory: completion.userQuest.quest.category,
+      completedAt: completion.completedAt.toISOString(),
+      timeBucket: completion.timeBucket ?? null,
+      xpEarned: completion.xpEarned,
+      value: completion.value ?? null,
+      source: completion.source,
+      notes: completion.notes ?? null,
+    }));
+
+    return c.json({
+      success: true,
+      data,
+      meta: {
+        page,
+        perPage,
+        total,
+        hasMore: page * perPage < total,
+      },
+    });
   }
 );
 

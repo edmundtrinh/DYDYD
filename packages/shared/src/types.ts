@@ -56,6 +56,14 @@ export enum DevicePlatform {
   GARMIN = 'garmin',
 }
 
+export enum TimeBucket {
+  EARLY_MORNING = 'early_morning', // 4am - 7am
+  MORNING = 'morning',             // 7am - 12pm
+  AFTERNOON = 'afternoon',         // 12pm - 5pm
+  EVENING = 'evening',             // 5pm - 9pm
+  NIGHT = 'night',                 // 9pm - 4am
+}
+
 // -------------------- Core Types --------------------
 
 export interface User {

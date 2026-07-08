@@ -2,7 +2,7 @@
 // DYDYD - Shared Utilities
 // ============================================
 
-import { QuestFrequency, DailyProgress, QuestCategory, StreakFreezeResult } from './types';
+import { QuestFrequency, DailyProgress, QuestCategory, StreakFreezeResult, TimeBucket } from './types';
 import {
   calculateXPForLevel,
   getLevelFromXP,
@@ -10,6 +10,17 @@ import {
   COMEBACK_CONFIG,
   PROGRESSIVE_ONBOARDING,
 } from './constants';
+
+// -------------------- Time Bucket Utilities --------------------
+
+export const getTimeBucket = (date: Date = new Date()): TimeBucket => {
+  const hour = date.getHours();
+  if (hour >= 4 && hour < 7) return TimeBucket.EARLY_MORNING;
+  if (hour >= 7 && hour < 12) return TimeBucket.MORNING;
+  if (hour >= 12 && hour < 17) return TimeBucket.AFTERNOON;
+  if (hour >= 17 && hour < 21) return TimeBucket.EVENING;
+  return TimeBucket.NIGHT; // 9pm - 4am
+};
 
 // -------------------- Date Utilities --------------------
 
