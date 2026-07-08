@@ -50,7 +50,7 @@ flowchart TB
     subgraph ROUTE["Per-Route Middleware"]
         direction TB
         AUTH_MW["authenticate<br/>or optionalAuth<br/>(JWT verification)"]
-        VALIDATE["validate(rules)<br/>(express-validator)"]
+        VALIDATE["validateBody(schema)<br/>(Zod + @hono/zod-validator)"]
         HANDLER["Route Handler"]
     end
 
@@ -93,7 +93,7 @@ flowchart TB
 |---|---|
 | `authenticate` | Extracts Bearer token from Authorization header, verifies JWT, attaches `req.userId` and `req.user`. Throws 401 on failure. |
 | `optionalAuth` | Same as `authenticate` but does not throw if token is missing or invalid. Used for public endpoints that optionally personalize. |
-| `validate(rules)` | Runs `express-validator` validation chains. Collects errors into `{ field: string[] }` format. Throws 422 on failure. |
+| `validateBody(schema)` | Runs Zod schema validation via `@hono/zod-validator`. Collects errors into `{ field: string[] }` format. Throws 422 on failure. |
 
 ## Route Summary
 
@@ -337,7 +337,7 @@ AppError {
 The global `errorHandler` middleware processes errors in this priority order:
 
 1. **`AppError` instances** -- Return the error's status code, code, message, and details.
-2. **`ValidationError`** (from express-validator) -- Return 422 with validation details.
+2. **`ZodError`** (from Zod validation) -- Return 422 with validation details.
 3. **`JsonWebTokenError`** -- Return 401 with `INVALID_TOKEN` code.
 4. **`TokenExpiredError`** -- Return 401 with `TOKEN_EXPIRED` code.
 5. **All other errors** -- Return 500. In production, the message is generic ("Internal server error"). In development, the original error message is returned.
@@ -385,7 +385,7 @@ All API responses use a consistent envelope format defined by the `ApiResponse<T
 
 ## Validation Patterns
 
-Validation uses `express-validator` with a custom `validate()` middleware factory. Validation rules are defined as arrays of `ValidationChain` objects colocated with each route.
+Validation uses **Zod** schemas with `@hono/zod-validator`. Validation schemas are defined as Zod objects colocated with each route, providing compile-time type inference.
 
 ### Password Requirements
 

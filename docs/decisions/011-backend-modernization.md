@@ -12,7 +12,7 @@ The backend was built on Express 4, which served well during initial development
 2. **express-validator requires manual type synchronization.** Validation schemas and TypeScript types were maintained separately, creating drift risk. Adding a field to the Prisma schema required updating the validator chain, the route handler types, and the shared package types independently.
 3. **supertest adds testing overhead.** Each test spun up an HTTP server, made a real network request, and tore it down -- adding latency and complexity to the 166-test suite. Test failures sometimes reflected HTTP/network issues rather than application logic.
 4. **Node.js startup and throughput.** For the same workload, Node.js has slower cold start and lower request throughput than Bun, which matters for development iteration speed and future edge deployment.
-5. **A consultant review (July 2026) recommended all three migrations** -- framework, validator, and runtime -- as a cohesive modernization step rather than incremental changes.
+5. **The modernization was identified as a cohesive upgrade** -- framework, validator, and runtime -- rather than incremental changes, to avoid maintaining compatibility shims between old and new patterns.
 
 ## Decision
 

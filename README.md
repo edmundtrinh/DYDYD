@@ -99,7 +99,7 @@ The `packages/shared` package is the single source of truth for domain types (`U
 
 ### Prerequisites
 
-- Bun 1.2+ (primary backend runtime) or Node.js 22+ (fallback)
+- Bun 1.2+ (primary backend runtime) or Node.js 18+ (fallback)
 - Yarn 4 (via Corepack)
 - PostgreSQL (local or Docker)
 - Xcode 15+ (iOS development, macOS only)
@@ -171,7 +171,7 @@ DYDYD/
 │   │       ├── middleware/      #   Auth, rate limiting, error handling
 │   │       ├── routes/          #   8 route groups
 │   │       ├── lib/             #   Prisma client, streak logic
-│   │       └── __tests__/       #   Jest + supertest route tests
+│   │       └── __tests__/       #   Jest route tests (Hono native)
 │   └── mobile/                  # React Native app
 │       └── src/
 │           ├── screens/         #   19 screens

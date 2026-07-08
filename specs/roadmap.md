@@ -281,7 +281,7 @@ Add AI-powered features that differentiate DYDYD from competitors. The LLM coach
 | **Backend** | 7 route files (auth, quests, health, progress, badges, user, notifications), Hono 4 framework, Zod validation, Prisma schema (15 models), JWT auth with refresh tokens, rate limiting, streak logic. 166+ unit tests across all route suites using Hono native `app.request()`. Bun runtime (primary) with Node.js fallback. |
 | **Mobile** | 19 screens, 14 components, 7 Redux slices, health integration (HealthKit, Google Fit, Garmin, Samsung), offline sync queue, push notifications (Expo), Sentry, interactive iOS widgets (WidgetKit). 19 test files. |
 | **Shared** | Types, constants, utils. 2 test files, 120/120 passing. |
-| **Infrastructure** | GitHub Actions CI workflow (test + lint + typecheck), EAS build configs (dev/preview/production), Sentry integration. 80+ merged PRs. |
+| **Infrastructure** | GitHub Actions CI workflow (test + lint + typecheck), EAS build configs (dev/preview/production), Sentry integration. 37+ merged PRs. |
 
 ### Resolved since last update (2026-07-07 → 2026-07-08)
 

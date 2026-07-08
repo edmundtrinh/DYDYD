@@ -11,7 +11,7 @@ The mobile app was on Expo SDK 50, React Native 0.73, and React 18. This stack w
 1. **Expo SDK 50 end-of-life approaching.** Expo drops active support for SDKs older than the current minus two. SDK 50 was losing access to the latest Expo modules, build tooling improvements, and security patches.
 2. **React Native New Architecture.** RN 0.79 makes the New Architecture (TurboModules, Fabric renderer) the default. Staying on 0.73 meant accumulating distance from the ecosystem's direction, making a future upgrade harder with each release.
 3. **React Navigation v7.** The app used React Navigation v6, which is incompatible with react-native-screens v4 (required by newer RN versions). Upgrading RN required upgrading React Navigation.
-4. **iOS deployment target.** The app's minimum iOS target needed to be 16.0 to support iPhone 13+ and Apple Watch Series 4+ -- both required for the Phase 4A widget and Watch companion app features (ADR-005).
+4. **iOS deployment target.** The app's minimum iOS target needed to be 16.0 to support iPhone 13+ and Apple Watch Series 4+ -- both required for the Phase 4A widget and Watch companion app features.
 5. **React 19 features.** React 19 introduces `use()`, improved Suspense, and the foundation for server components -- features that benefit the app's data loading patterns even without server-side rendering.
 
 ## Decision
