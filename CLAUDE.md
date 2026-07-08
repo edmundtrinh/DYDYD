@@ -4,14 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DYDYD is a gamified habit tracking app (quests, XP, badges, streaks) with React Native mobile, Node.js/Express backend, and a shared TypeScript package. Managed as a **Yarn Workspaces + Turbo monorepo**.
+DYDYD is a gamified habit tracking app (quests, XP, badges, streaks) with React Native mobile, Hono backend (Bun primary, Node.js fallback), and a shared TypeScript package. Managed as a **Yarn Workspaces + Turbo monorepo**.
 
 ## Commands
 
 ### Running Development Servers
 ```bash
-yarn start:backend    # Backend with hot reload (ts-node-dev)
+yarn start:backend    # Backend via Bun (bun src/index.ts)
 yarn start:mobile     # Metro bundler for React Native
+
+# Backend alternatives
+yarn workspace @dydyd/backend dev        # Bun with watch mode (bun --watch)
+yarn workspace @dydyd/backend dev:node   # Node.js fallback (ts-node-dev)
 ```
 
 ### Building
@@ -39,9 +43,9 @@ yarn workspace @dydyd/backend lint   # Backend only
 
 ### Database (Backend)
 ```bash
-yarn workspace @dydyd/backend db:migrate   # Run Prisma migrations
-yarn workspace @dydyd/backend db:generate  # Regenerate Prisma client
-yarn workspace @dydyd/backend db:seed      # Seed database
+yarn workspace @dydyd/backend db:migrate   # Run Prisma migrations (bunx prisma migrate dev)
+yarn workspace @dydyd/backend db:generate  # Regenerate Prisma client (bunx prisma generate)
+yarn workspace @dydyd/backend db:seed      # Seed database (bun prisma/seed.ts)
 ```
 
 ### Cleanup
@@ -84,7 +88,7 @@ Do **not** use the `gh` CLI for GitHub operations. Use the GitHub REST API direc
 
 ### Monorepo Structure
 ```
-apps/backend/    # Express API server
+apps/backend/    # Hono API server (Bun runtime)
 apps/mobile/     # React Native app (iOS + Android)
 packages/shared/ # Shared types, constants, utilities
 ```
@@ -100,16 +104,18 @@ The single source of truth for domain types and business logic:
 Always import domain types from `@dydyd/shared`, not defined locally in backend or mobile.
 
 ### Backend (`@dydyd/backend`)
-- **Express 4** with TypeScript, Prisma ORM, PostgreSQL
+- **Hono 4** with TypeScript, Zod validation (`@hono/zod-validator`), Prisma ORM, PostgreSQL
+- **Runtime**: Bun primary (`Bun.serve()`), auto-falls back to `@hono/node-server` when Bun is not detected
+- **Middleware**: `secureHeaders()`, `cors()`, `compress()`, `logger()`, custom `rateLimiter()`, custom `errorHandler`
 - Route structure: `/api/auth`, `/api/quests`, `/api/user`, `/api/progress`, `/api/health`, `/api/badges`, `/api/notifications`, `/health`
 - JWT auth: 15m access tokens, 7d refresh tokens; middleware in `src/middleware/auth.ts`
 - Rate limiting: 100 req/15min globally
 - Prisma schema at `prisma/schema.prisma` — 11 models covering users, quests, completions, badges, notifications, devices, refresh tokens
-- Migrations managed via `prisma migrate` (not `db push`); initial baseline at `prisma/migrations/20260618000000_init`
+- Migrations managed via `bunx prisma migrate` (not `db push`); initial baseline at `prisma/migrations/20260618000000_init`
 - Environment: copy `.env.example` → `.env` and configure `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`
 
 ### Mobile (`@dydyd/mobile`)
-- **React Native 0.73** with Redux Toolkit + Redux Persist + React Navigation 6
+- **React Native 0.79** with Redux Toolkit + Redux Persist + React Navigation 7 (Expo 53 upgrade in progress)
 - **Navigation**: `RootNavigator` → conditionally renders `AuthNavigator`, `OnboardingNavigator`, or `MainTabNavigator` based on auth/onboarding state
 - **Redux slices**: `auth`, `quests`, `progress`, `user`, `health`, `notifications`, `ui` — persisted slices use AsyncStorage (auth, user, quests); `ui` and `health` are not persisted
 - **Services layer** (`src/services/`): axios-based API client, plus wearable integrations (Apple HealthKit, Google Fit, Garmin, Samsung, Apple Watch)
@@ -125,15 +131,16 @@ Always import domain types from `@dydyd/shared`, not defined locally in backend 
 ## Testing
 
 ### Backend Test Infrastructure
-- **Jest + supertest** for route-level unit tests; mocked Prisma via `jest.mock('../../lib/prisma')`
+- **Jest** with Hono native `app.request()` for route-level unit tests; mocked Prisma via `jest.mock('../../lib/prisma')`
 - **Docker Postgres** on port 5433 for integration tests: `docker compose -f docker-compose.test.yml up -d`
-- Test files live in `apps/backend/src/__tests__/routes/` — 7 suites, 166 tests covering all API endpoints
+- Test files live in `apps/backend/src/__tests__/routes/` — 7 suites covering all API endpoints
 - Test helpers in `apps/backend/src/__tests__/helpers/prisma.ts` (integration test DB utilities)
 - Jest setup in `apps/backend/jest.setup.js` — sets NODE_ENV=test, test secrets, DATABASE_URL
 
 ### Test Patterns
-- Each test suite creates its own Express app with only the route under test + errorHandler
-- Use proper UUIDs in test data (validator rejects non-UUID params)
+- Each test suite creates its own Hono app with only the route under test + `errorHandler`
+- Tests use `app.request()` (Hono's native test interface) — no supertest
+- Use proper UUIDs in test data (Zod validation rejects non-UUID params)
 - Mock external modules (`bcryptjs`, `../../lib/streaks`) at module level
 - `beforeEach(() => jest.clearAllMocks())` for test isolation
 
@@ -155,6 +162,7 @@ yarn workspace @dydyd/backend test:integration                # Integration test
 - **TypeScript strict mode** is enforced across all workspaces — no implicit `any`, no loose nulls
 - **Always import domain types from `@dydyd/shared`** — never redefine `User`, `Quest`, `Badge`, etc. locally
 - **Avoid `as any`** — the only accepted exception is stripping sensitive fields before a response (e.g. `password: undefined as any`), which is itself a TODO: replace with Prisma `select` / `omit` to avoid the cast entirely
+- **Zod schemas for request validation** — define input schemas with Zod and validate via `@hono/zod-validator`; never use manual `if` checks for request validation
 - **Prefer `it.each`** for parameterized tests — use it for all validation-error cases instead of repeating `it()` blocks
 - Test every route's validation rules with a single `it.each` table covering each invalid field
 
