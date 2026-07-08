@@ -13,6 +13,7 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
 
     private var session: WCSession?
     private let userDefaults = UserDefaults(suiteName: "group.com.dydyd.app")
+    private var isSendingQueue = false
 
     override init() {
         super.init()
@@ -97,7 +98,27 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
 
         do {
             let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
+            // The JS bridge may serialize dates as ISO 8601 strings or epoch milliseconds.
+            // Use a custom strategy that handles both formats.
+            decoder.dateDecodingStrategy = .custom { decoder in
+                let container = try decoder.singleValueContainer()
+                if let isoString = try? container.decode(String.self) {
+                    let formatter = ISO8601DateFormatter()
+                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    if let date = formatter.date(from: isoString) {
+                        return date
+                    }
+                    // Retry without fractional seconds
+                    formatter.formatOptions = [.withInternetDateTime]
+                    if let date = formatter.date(from: isoString) {
+                        return date
+                    }
+                }
+                if let epochMs = try? container.decode(Double.self) {
+                    return Date(timeIntervalSince1970: epochMs / 1000)
+                }
+                return Date()
+            }
             let payload = try decoder.decode(WatchSyncPayload.self, from: jsonData)
 
             DispatchQueue.main.async {
@@ -137,8 +158,11 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func sendQueuedCompletions() {
+        guard !isSendingQueue else { return }
         guard let queue = userDefaults?.array(forKey: "pendingCompletions") as? [[String: Any]],
               !queue.isEmpty else { return }
+
+        isSendingQueue = true
 
         for entry in queue {
             if let questId = entry["questId"] as? String {
@@ -148,5 +172,6 @@ class ConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         }
 
         userDefaults?.removeObject(forKey: "pendingCompletions")
+        isSendingQueue = false
     }
 }

@@ -6,11 +6,24 @@
 
 import { UserQuest } from '@dydyd/shared';
 
+// Minimal typed interface for the react-native-watch-connectivity native module.
+// Only the methods actually used by this service are declared.
+interface WatchConnectivityModule {
+  getIsPaired(): Promise<boolean>;
+  getIsWatchAppInstalled(): Promise<boolean>;
+  getReachability(): Promise<boolean>;
+  sendMessage(message: Record<string, unknown>): Promise<void>;
+  updateApplicationContext(context: Record<string, unknown>): Promise<void>;
+  watchEvents: {
+    on(event: string, callback: (data: any) => void): () => void;
+  };
+}
+
 // Conditional import — react-native-watch-connectivity is a native iOS module
 // that won't be available on Android, in test environments, or during development on Windows
-let watchModule: any = null;
+let watchModule: WatchConnectivityModule | null = null;
 try {
-  watchModule = require('react-native-watch-connectivity');
+  watchModule = require('react-native-watch-connectivity') as WatchConnectivityModule;
 } catch {
   // Module not available — all operations will gracefully degrade
 }
@@ -126,7 +139,7 @@ class WatchConnectivityService {
     };
 
     try {
-      await watchModule.sendMessage(message);
+      await watchModule.sendMessage({ ...message });
       return true;
     } catch (error) {
       console.error('Failed to send message to watch:', error);

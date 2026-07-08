@@ -429,7 +429,7 @@ app.get('/watch-sync', authenticate, async (c) => {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [userQuests, user, streakData] = await Promise.all([
+  const [userQuests, user, streakData, todayCompletions] = await Promise.all([
     prisma.userQuest.findMany({
       where: {
         userId,
@@ -448,22 +448,28 @@ app.get('/watch-sync', authenticate, async (c) => {
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { totalXP: true, level: true },
+      select: { level: true },
     }),
     calculateOverallDayStreak(userId),
+    // Sum XP from ALL quest completions today, not just daily quests
+    prisma.questCompletion.aggregate({
+      where: {
+        userQuest: { userId },
+        completedAt: { gte: todayStart },
+      },
+      _sum: { xpEarned: true },
+    }),
   ]);
 
   if (!user) {
     throw Errors.notFound('User');
   }
 
-  const todayXP = userQuests.reduce(
-    (sum, uq) => sum + (uq.completions?.reduce((s: number, c: any) => s + c.xpEarned, 0) ?? 0),
-    0
-  );
+  const todayXP = todayCompletions._sum.xpEarned ?? 0;
 
   const dailyQuests: WatchQuest[] = userQuests.map((uq) => ({
-    id: uq.id,
+    id: uq.id,           // UserQuest ID — used for completion dispatch
+    questId: uq.questId, // Quest catalog ID — for reference
     name: uq.customName || uq.quest.name,
     iconName: uq.quest.iconName,
     xp: uq.customXP || uq.quest.baseXP,

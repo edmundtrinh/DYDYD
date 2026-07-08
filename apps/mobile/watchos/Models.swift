@@ -6,7 +6,10 @@
 import Foundation
 
 struct WatchQuest: Identifiable, Codable {
+    /// UserQuest ID — used for completion dispatch
     let id: String
+    /// Quest catalog ID — for informational reference
+    let questId: String
     let name: String
     let iconName: String
     let xp: Int

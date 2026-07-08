@@ -27,6 +27,7 @@ jest.mock('../../lib/prisma', () => {
       count: jest.fn(),
       create: jest.fn(),
       findMany: jest.fn(),
+      aggregate: jest.fn(),
     },
     user: {
       findUnique: jest.fn(),
@@ -533,7 +534,8 @@ describe('Quest Routes', () => {
 
     it('returns 200 with WatchData containing daily quests', async () => {
       (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([mockUserQuestWithCompletions]);
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ totalXP: 150, level: 2 });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ level: 2 });
+      (prisma.questCompletion.aggregate as jest.Mock).mockResolvedValue({ _sum: { xpEarned: 5 } });
 
       const res = await app.request('/api/quests/watch-sync');
       const body: any = await res.json();
@@ -547,6 +549,7 @@ describe('Quest Routes', () => {
       expect(body.data.dailyQuests).toHaveLength(1);
       expect(body.data.dailyQuests[0]).toEqual({
         id: VALID_UUID,
+        questId: VALID_UUID,
         name: 'Morning Run',
         iconName: 'run',
         xp: 5,
@@ -561,7 +564,8 @@ describe('Quest Routes', () => {
 
     it('returns 200 with empty dailyQuests when user has no active daily quests', async () => {
       (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ totalXP: 0, level: 1 });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ level: 1 });
+      (prisma.questCompletion.aggregate as jest.Mock).mockResolvedValue({ _sum: { xpEarned: null } });
 
       const res = await app.request('/api/quests/watch-sync');
       const body: any = await res.json();
@@ -575,6 +579,7 @@ describe('Quest Routes', () => {
     it('returns 404 when user not found', async () => {
       (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.questCompletion.aggregate as jest.Mock).mockResolvedValue({ _sum: { xpEarned: null } });
 
       const res = await app.request('/api/quests/watch-sync');
       const body: any = await res.json();

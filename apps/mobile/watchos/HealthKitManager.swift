@@ -9,7 +9,11 @@ import HealthKit
 
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
-    @Published var isAuthorized: Bool = false
+    // Note: Apple's HealthKit does not reveal whether the user granted or denied
+    // individual type authorization, to protect user privacy. This flag only tracks
+    // whether the authorization dialog was presented without error. Actual data
+    // availability is checked when querying.
+    @Published var authorizationRequested: Bool = false
 
     private let readTypes: Set<HKSampleType> = {
         var types = Set<HKSampleType>()
@@ -37,7 +41,8 @@ class HealthKitManager: ObservableObject {
         try await healthStore.requestAuthorization(toShare: [], read: readTypes)
 
         await MainActor.run {
-            self.isAuthorized = true
+            // success=true means the dialog was shown, not that access was granted.
+            self.authorizationRequested = true
         }
 
         setupBackgroundDelivery()

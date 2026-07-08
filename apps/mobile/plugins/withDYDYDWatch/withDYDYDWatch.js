@@ -78,6 +78,12 @@ function withWatchConnectivityInfo(config) {
     // Declare that this app has a Watch companion
     infoPlist.WKCompanionAppBundleIdentifier = 'com.dydyd.app';
 
+    // Add HealthKit usage description if not already present (required by Apple)
+    if (!infoPlist.NSHealthShareUsageDescription) {
+      infoPlist.NSHealthShareUsageDescription =
+        'DYDYD uses health data to automatically track quest progress for steps, workouts, sleep, and mindfulness.';
+    }
+
     return mod;
   });
 }

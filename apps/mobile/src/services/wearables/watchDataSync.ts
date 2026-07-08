@@ -20,6 +20,7 @@ function transformToWatchQuests(
       const maxCompletions = uq.quest?.maxCompletionsPerPeriod ?? 1;
       return {
         id: uq.id,
+        questId: uq.questId,
         name: uq.customName || uq.quest?.name || 'Quest',
         iconName: uq.quest?.iconName || 'star',
         xp: uq.customXP || uq.quest?.baseXP || 0,
@@ -48,7 +49,7 @@ export async function syncQuestsToWatch(
 
   return watchConnectivityService.updateApplicationContext({
     type: 'full_sync',
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(),
     data: watchData,
   } as WatchSyncPayload);
 }
@@ -68,7 +69,7 @@ export async function syncProgressToWatch(
 
   return watchConnectivityService.updateApplicationContext({
     type: 'stats_update',
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(),
     data: watchData,
   } as WatchSyncPayload);
 }
@@ -97,12 +98,8 @@ export function registerWatchMessageHandler(
   onSyncRequested?: () => void
 ): () => void {
   return watchConnectivityService.onMessage((message: WatchMessage) => {
-    if (message.type === WatchMessageType.QUEST_COMPLETED) {
-      const { questId, value } = message.payload ?? {};
-      if (questId) {
-        onQuestCompleted(questId, value);
-      }
-    } else if (message.type === WatchMessageType.REQUEST_SYNC) {
+    handleWatchMessage(message, onQuestCompleted);
+    if (message.type === WatchMessageType.REQUEST_SYNC) {
       onSyncRequested?.();
     }
   });

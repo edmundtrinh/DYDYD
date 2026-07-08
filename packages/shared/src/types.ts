@@ -372,7 +372,8 @@ export interface WidgetQuest {
 
 export interface WatchSyncPayload {
   type: 'full_sync' | 'quest_update' | 'completion' | 'stats_update';
-  timestamp: Date;
+  /** ISO 8601 string — always serialized explicitly to avoid bridge format ambiguity */
+  timestamp: string;
   data: WatchData;
 }
 
@@ -384,7 +385,10 @@ export interface WatchData {
 }
 
 export interface WatchQuest {
+  /** UserQuest ID — used for completion dispatch via POST /api/quests/:id/complete */
   id: string;
+  /** Quest catalog ID — for informational reference only */
+  questId: string;
   name: string;
   iconName: string;
   xp: number;

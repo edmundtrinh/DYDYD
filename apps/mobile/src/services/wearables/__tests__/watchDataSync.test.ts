@@ -84,6 +84,7 @@ describe('watchDataSync', () => {
       expect(payload.data.dailyQuests).toHaveLength(1);
       expect(payload.data.dailyQuests[0]).toEqual({
         id: 'uq-1',
+        questId: 'quest-1',
         name: 'Morning Run',
         iconName: 'run',
         xp: 5,
@@ -142,7 +143,7 @@ describe('watchDataSync', () => {
   describe('syncProgressToWatch', () => {
     it('sends stats_update via updateApplicationContext', async () => {
       const dailyQuests = [
-        { id: 'q1', name: 'Run', iconName: 'run', xp: 5, isCompleted: true, completionsToday: 1, maxCompletions: 1 },
+        { id: 'q1', questId: 'quest-1', name: 'Run', iconName: 'run', xp: 5, isCompleted: true, completionsToday: 1, maxCompletions: 1 },
       ];
 
       const result = await syncProgressToWatch(25, 4, 7, dailyQuests);
