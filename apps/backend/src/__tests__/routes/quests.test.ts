@@ -26,6 +26,7 @@ jest.mock('../../lib/prisma', () => {
     questCompletion: {
       count: jest.fn(),
       create: jest.fn(),
+      findMany: jest.fn(),
     },
     user: {
       findUnique: jest.fn(),
@@ -60,7 +61,15 @@ jest.mock('../../middleware/auth', () => ({
   },
 }));
 
+jest.mock('../../lib/streaks', () => ({
+  calculateOverallDayStreak: jest.fn().mockResolvedValue({
+    currentDayStreak: 5,
+    longestDayStreak: 10,
+  }),
+}));
+
 import { prisma } from '../../lib/prisma';
+import { calculateOverallDayStreak } from '../../lib/streaks';
 
 const app = new Hono();
 app.route('/api/quests', questRoutes);
@@ -507,6 +516,72 @@ describe('Quest Routes', () => {
       expect(res.status).toBe(422);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // GET /api/quests/watch-sync
+  // ---------------------------------------------------------------------------
+  describe('GET /api/quests/watch-sync', () => {
+    const mockUserQuestWithCompletions = {
+      ...mockUserQuest,
+      quest: { ...mockQuest, frequency: 'daily', maxCompletionsPerPeriod: 1 },
+      completions: [{ ...mockCompletion, xpEarned: 5 }],
+      customName: null,
+      customXP: null,
+    };
+
+    it('returns 200 with WatchData containing daily quests', async () => {
+      (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([mockUserQuestWithCompletions]);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ totalXP: 150, level: 2 });
+
+      const res = await app.request('/api/quests/watch-sync');
+      const body: any = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data).toHaveProperty('dailyQuests');
+      expect(body.data).toHaveProperty('todayXP');
+      expect(body.data).toHaveProperty('level');
+      expect(body.data).toHaveProperty('currentStreak');
+      expect(body.data.dailyQuests).toHaveLength(1);
+      expect(body.data.dailyQuests[0]).toEqual({
+        id: VALID_UUID,
+        name: 'Morning Run',
+        iconName: 'run',
+        xp: 5,
+        isCompleted: true,
+        completionsToday: 1,
+        maxCompletions: 1,
+      });
+      expect(body.data.todayXP).toBe(5);
+      expect(body.data.level).toBe(2);
+      expect(body.data.currentStreak).toBe(5);
+    });
+
+    it('returns 200 with empty dailyQuests when user has no active daily quests', async () => {
+      (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ totalXP: 0, level: 1 });
+
+      const res = await app.request('/api/quests/watch-sync');
+      const body: any = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.dailyQuests).toEqual([]);
+      expect(body.data.todayXP).toBe(0);
+    });
+
+    it('returns 404 when user not found', async () => {
+      (prisma.userQuest.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const res = await app.request('/api/quests/watch-sync');
+      const body: any = await res.json();
+
+      expect(res.status).toBe(404);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('NOT_FOUND');
     });
   });
 });

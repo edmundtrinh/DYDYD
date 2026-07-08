@@ -5,8 +5,8 @@ import { validateBody } from '../middleware/validate';
 import { authenticate, optionalAuth, AuthEnv } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
-import { ApiResponse, Quest, HealthDataSource, getTimeBucket } from '@dydyd/shared';
-import { checkAndAutoApplyFreeze, trackActiveDay } from '../lib/streaks';
+import { ApiResponse, Quest, HealthDataSource, WatchData, WatchQuest, getTimeBucket } from '@dydyd/shared';
+import { checkAndAutoApplyFreeze, trackActiveDay, calculateOverallDayStreak } from '../lib/streaks';
 
 const app = new Hono<AuthEnv>();
 
@@ -418,6 +418,73 @@ app.post('/custom', authenticate, validateBody(customQuestSchema), async (c) => 
   };
 
   return c.json(response, 201);
+});
+
+/**
+ * GET /api/quests/watch-sync
+ * Get today's active quests formatted for Watch display
+ */
+app.get('/watch-sync', authenticate, async (c) => {
+  const userId = c.get('userId');
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [userQuests, user, streakData] = await Promise.all([
+    prisma.userQuest.findMany({
+      where: {
+        userId,
+        isActive: true,
+        quest: { frequency: 'daily' },
+      },
+      include: {
+        quest: true,
+        completions: {
+          where: {
+            completedAt: { gte: todayStart },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { totalXP: true, level: true },
+    }),
+    calculateOverallDayStreak(userId),
+  ]);
+
+  if (!user) {
+    throw Errors.notFound('User');
+  }
+
+  const todayXP = userQuests.reduce(
+    (sum, uq) => sum + (uq.completions?.reduce((s: number, c: any) => s + c.xpEarned, 0) ?? 0),
+    0
+  );
+
+  const dailyQuests: WatchQuest[] = userQuests.map((uq) => ({
+    id: uq.id,
+    name: uq.customName || uq.quest.name,
+    iconName: uq.quest.iconName,
+    xp: uq.customXP || uq.quest.baseXP,
+    isCompleted: (uq.completions?.length ?? 0) >= uq.quest.maxCompletionsPerPeriod,
+    completionsToday: uq.completions?.length ?? 0,
+    maxCompletions: uq.quest.maxCompletionsPerPeriod,
+  }));
+
+  const watchData: WatchData = {
+    dailyQuests,
+    todayXP,
+    level: user.level,
+    currentStreak: streakData.currentDayStreak,
+  };
+
+  const response: ApiResponse<WatchData> = {
+    success: true,
+    data: watchData,
+  };
+
+  return c.json(response);
 });
 
 export default app;
