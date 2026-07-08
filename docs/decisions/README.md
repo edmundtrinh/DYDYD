@@ -3,7 +3,7 @@
 > Design decisions for DYDYD, recorded in [ADR format](https://adr.github.io/).
 > Each record captures the context, decision, consequences, and alternatives for a significant technical or product choice.
 >
-> **Last updated:** 2026-07-07
+> **Last updated:** 2026-07-08
 
 ## Index
 
@@ -19,6 +19,8 @@
 | [008](008-redux-toolkit-state.md) | Why Redux Toolkit + Persist over alternatives (Zustand, MobX, Context) | Accepted | 2026-05-28 |
 | [009](009-github-api-over-cli.md) | Why GitHub REST API with PAT over gh CLI for PR management | Accepted | 2026-06-17 |
 | [010](010-phase-resequencing.md) | Why widgets pulled forward from Phase 5 to Phase 4A | Accepted | 2026-07-07 |
+| [011](011-backend-modernization.md) | Why Express replaced with Hono + Bun runtime | Accepted | 2026-07-07 |
+| [012](012-expo-53-upgrade.md) | Why Expo 50 upgraded to 53 with RN 0.79 and React 19 | Accepted | 2026-07-07 |
 
 ## How to Read These
 
@@ -40,6 +42,8 @@ Each ADR follows a consistent structure:
 ### Infrastructure (mid-project decisions)
 - ADR-003: CNG adoption
 - ADR-009: GitHub REST API
+- ADR-011: Backend modernization (Express to Hono + Bun)
+- ADR-012: Expo 53 upgrade (RN 0.79, React 19)
 
 ### Product (founder decisions from open questions)
 - ADR-004: Compassionate streaks

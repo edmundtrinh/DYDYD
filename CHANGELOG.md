@@ -8,9 +8,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
-- Phase 4A: Compassionate streak design (in progress)
-- Phase 4A: iOS widget infrastructure (in progress)
 - Phase 4A: Apple Watch companion app (in progress)
+
+## [v0.4.0] - 2026-07-07
+
+### Changed
+
+- Migrated backend from Express 4 to Hono framework
+- Replaced express-validator with Zod + @hono/zod-validator
+- Migrated all 7 test suites from supertest to Hono native testing
+- Added Bun as primary backend runtime (Node.js fallback preserved)
+- Fixed 40+ req.userId! non-null assertions with typed middleware
+- Upgraded to Expo SDK 53, React Native 0.79, React 19
+- Upgraded React Navigation from v6 to v7
+- Set iOS deployment target to 16.0 (iPhone 13+)
+
+### Added
+
+- iOS widget infrastructure (WidgetKit integration with Swift views)
+- Compassionate streak design (streak freezes, comeback quests)
+
+### Removed
+
+- Express, express-validator, express-rate-limit, helmet, compression, cors, morgan dependencies
+- supertest dependency (replaced by Hono native testing)
 
 ## [v0.3.2] - 2026-07-07
 
