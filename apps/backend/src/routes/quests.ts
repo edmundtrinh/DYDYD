@@ -5,7 +5,7 @@ import { validateBody } from '../middleware/validate';
 import { authenticate, optionalAuth, AuthEnv } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
-import { ApiResponse, Quest, HealthDataSource } from '@dydyd/shared';
+import { ApiResponse, Quest, HealthDataSource, getTimeBucket } from '@dydyd/shared';
 import { checkAndAutoApplyFreeze, trackActiveDay } from '../lib/streaks';
 
 const app = new Hono<AuthEnv>();
@@ -261,6 +261,7 @@ app.post('/:id/complete', authenticate, async (c) => {
         source: source as HealthDataSource,
         notes,
         periodStart,
+        timeBucket: getTimeBucket(new Date()),
       },
     });
 

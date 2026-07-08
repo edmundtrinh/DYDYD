@@ -137,6 +137,7 @@ model QuestCompletion {
   source      String   @default("manual") // HealthDataSource
   periodStart DateTime // Start of the day/week this completion belongs to
   notes       String?
+  timeBucket  String?  // TimeBucket enum value - nullable for existing records
   createdAt   DateTime @default(now())
 
   // Relations
