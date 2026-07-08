@@ -61,7 +61,7 @@ The app meets you where you are. Miss a day? Earn a Comeback Quest with bonus XP
 graph TD
     subgraph Monorepo
         MOBILE["apps/mobile<br/>React Native + Expo"]
-        BACKEND["apps/backend<br/>Express + Prisma"]
+        BACKEND["apps/backend<br/>Hono + Prisma"]
         SHARED["packages/shared<br/>Types, Constants, Utils"]
     end
 
@@ -79,11 +79,13 @@ The `packages/shared` package is the single source of truth for domain types (`U
 
 | Layer | Technology |
 |-------|-----------|
-| Mobile Framework | React Native 0.73 + TypeScript |
-| Mobile Build | Expo + EAS Build (cloud CI for iOS and Android) |
+| Mobile Framework | React Native 0.79 + TypeScript |
+| Mobile Build | Expo 53 + EAS Build (cloud CI for iOS and Android) |
 | State Management | Redux Toolkit + Redux Persist |
-| Navigation | React Navigation 6 |
-| Backend Runtime | Node.js + Express 4 |
+| Navigation | React Navigation 7 |
+| Backend Framework | Hono 4 |
+| Backend Runtime | Bun (primary) / Node.js (fallback) |
+| Validation | Zod + @hono/zod-validator |
 | Database | PostgreSQL + Prisma ORM |
 | Authentication | JWT (access + refresh tokens) |
 | Health Data | Apple HealthKit, Google Fit, Garmin, Samsung Health |
@@ -97,7 +99,7 @@ The `packages/shared` package is the single source of truth for domain types (`U
 
 ### Prerequisites
 
-- Node.js 18+
+- Bun 1.2+ (primary backend runtime) or Node.js 18+ (fallback)
 - Yarn 4 (via Corepack)
 - PostgreSQL (local or Docker)
 - Xcode 15+ (iOS development, macOS only)
@@ -163,13 +165,13 @@ See the [EAS Build documentation](https://docs.expo.dev/build/introduction/) for
 ```
 DYDYD/
 ├── apps/
-│   ├── backend/                 # Express API server
+│   ├── backend/                 # Hono API server (Bun runtime)
 │   │   ├── prisma/              #   Prisma schema and migrations
 │   │   └── src/
 │   │       ├── middleware/      #   Auth, rate limiting, error handling
 │   │       ├── routes/          #   8 route groups
 │   │       ├── lib/             #   Prisma client, streak logic
-│   │       └── __tests__/       #   Jest + supertest route tests
+│   │       └── __tests__/       #   Jest route tests (Hono native)
 │   └── mobile/                  # React Native app
 │       └── src/
 │           ├── screens/         #   19 screens
@@ -193,10 +195,12 @@ DYDYD/
 
 ```bash
 yarn test:all                                      # All workspaces
-yarn workspace @dydyd/backend test                 # Backend (160+ tests, 7 suites)
+yarn workspace @dydyd/backend test                 # Backend (166+ tests, 7 suites)
 yarn workspace @dydyd/shared test                  # Shared (120 tests)
 yarn lint:all                                      # Lint all workspaces
 ```
+
+Backend tests use Hono's native `app.request()` -- no HTTP server required, faster test execution than supertest.
 
 CI runs tests, linting, TypeScript strict-mode typechecking, and Prisma schema validation on every push and pull request.
 
@@ -212,7 +216,7 @@ CI runs tests, linting, TypeScript strict-mode typechecking, and Prisma schema v
 
 ## Roadmap
 
-DYDYD is currently entering **Phase 4A: The Vision** -- interactive iOS widgets, Apple Watch companion app, and compassionate streak design. This phase represents the core product thesis: the app should live on your homescreen and your wrist, not buried in a folder.
+DYDYD is in **Phase 4A: The Vision**. iOS widgets have shipped (PR #82), compassionate streak design is implementation-complete and rebasing for merge, and the Apple Watch companion is next (Issue #81). The backend has been modernized from Express/Node.js to Hono/Bun (PR #88). This phase represents the core product thesis: the app should live on your homescreen and your wrist, not buried in a folder.
 
 For the full roadmap including completed phases and future plans, see [specs/roadmap.md](specs/roadmap.md).
 

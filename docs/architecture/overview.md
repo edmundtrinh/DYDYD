@@ -26,8 +26,8 @@ DYDYD is a gamified habit tracking application built as a **Yarn Workspaces + Tu
 
 | Package | Path | Technology |
 |---|---|---|
-| Backend API | `apps/backend/` | Express 4, Prisma ORM, PostgreSQL |
-| Mobile App | `apps/mobile/` | React Native 0.73, Expo, Redux Toolkit |
+| Backend API | `apps/backend/` | Hono 4, Prisma ORM, PostgreSQL, Bun runtime |
+| Mobile App | `apps/mobile/` | React Native 0.79, Expo 53, Redux Toolkit |
 | Shared | `packages/shared/` | TypeScript types, constants, utilities |
 
 ## System Diagram
@@ -36,7 +36,7 @@ DYDYD is a gamified habit tracking application built as a **Yarn Workspaces + Tu
 graph TB
     subgraph "Mobile App (React Native + Expo)"
         UI["UI Layer<br/>(Screens, Components)"]
-        NAV["Navigation<br/>(React Navigation 6)"]
+        NAV["Navigation<br/>(React Navigation 7)"]
         REDUX["State Management<br/>(Redux Toolkit + Redux Persist)"]
         SERVICES["Services Layer"]
         OFFLINE["Offline Queue<br/>(AsyncStorage)"]
@@ -51,10 +51,10 @@ graph TB
         SAMSUNG["Samsung Health<br/>(NativeModules scaffold)"]
     end
 
-    subgraph "Backend (Express + Prisma)"
-        MW["Middleware Pipeline<br/>helmet → cors → rate-limit →<br/>json → compress → morgan"]
+    subgraph "Backend (Hono + Prisma)"
+        MW["Middleware Pipeline<br/>secureHeaders → cors → rate-limit →<br/>compress → logger"]
         AUTH_MW["Auth Middleware<br/>(JWT verify)"]
-        VAL["Validation<br/>(express-validator)"]
+        VAL["Validation<br/>(Zod + @hono/zod-validator)"]
         ROUTES["Route Handlers"]
         PRISMA["Prisma ORM"]
     end
@@ -260,9 +260,9 @@ sequenceDiagram
     API-->>Client: 200 {message}
 ```
 
-## Planned: iOS Widgets (Phase 4A)
+## iOS Widgets (Phase 4A)
 
-> **STATUS: PLANNED** -- No implementation exists. This section describes the intended architecture.
+> **STATUS: COMPLETE** -- Merged in PR #82. Architecture implemented as described below.
 
 ```mermaid
 graph LR

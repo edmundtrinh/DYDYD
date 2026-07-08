@@ -3,7 +3,7 @@
 > Single source of truth for what's planned, in progress, and complete.
 > Owned by PRODUCT agent. All agents read.
 
-## Current Phase: Phase 3A — Merge & Stabilize (then Phase 4A — The Vision)
+## Current Phase: Phase 4A — The Vision (Widgets MERGED, Streaks IN PROGRESS)
 
 ---
 
@@ -121,6 +121,30 @@ Expand mobile test coverage to auth screens, HomeScreen, quest screens, and all 
 
 ---
 
+## Phase M: Modernization (Backend + Mobile Stack Upgrade)
+
+### Status: MOSTLY COMPLETE
+
+Backend framework and runtime migrated. Mobile upgrade in PR, pending merge.
+
+| Task | PR | Status | Notes |
+|------|-----|--------|-------|
+| M1: Fix `req.userId!` assertions | #88 | DONE | Replaced unsafe non-null assertions with proper Hono context typing |
+| M2: Express 4 -> Hono 4 migration | #88 | DONE | Full framework swap: routes, middleware, error handling, validation (express-validator -> Zod) |
+| M3: Node.js -> Bun runtime | #88 | DONE | Scripts updated to `bun`, `@hono/node-server` retained as fallback |
+| M4: Expo 50 -> 53, RN 0.73 -> 0.79, React 18 -> 19 | #89 | PENDING MERGE | React Navigation 6 -> 7 included |
+
+### Key technical changes
+
+- **Backend framework**: Express 4 -> Hono 4 (lighter, faster, Web Standards-based)
+- **Validation**: express-validator -> Zod + `@hono/zod-validator` (type-safe schemas)
+- **Runtime**: Node.js -> Bun (primary), `@hono/node-server` for Node.js fallback
+- **Testing**: supertest -> Hono native `app.request()` (no HTTP server needed)
+- **Security**: `helmet()` -> `secureHeaders()` (Hono built-in)
+- **Mobile (pending)**: React Native 0.73 -> 0.79, Expo 50 -> 53, React Navigation 6 -> 7
+
+---
+
 ## Phase 4A: The Vision (v0.4.0) — CURRENT PRIORITY
 
 ### Strategic Context
@@ -129,36 +153,42 @@ Expand mobile test coverage to auth screens, HomeScreen, quest screens, and all 
 >
 > **Industry context:** Apps with interactive widgets see 12-18% lifts in re-engagement. Finch (compassionate gamification) grew to ~$30M ARR. Duolingo's streak mechanics drove 36% YoY DAU growth. The opportunity is to combine proven engagement patterns with genuinely supportive design.
 
-### Milestone 1 — Interactive iOS Widgets
+### Milestone 1 — Interactive iOS Widgets -- COMPLETE
 
-| Task | Notes | Owner |
-|------|-------|-------|
-| Set up `expo-widgets` for iOS home screen widgets | WidgetKit + App Groups, no native Swift required | MOBILE |
-| Small widget: streak count + daily XP progress ring | Glanceable daily status | MOBILE |
-| Medium widget: top 3 daily quests with interactive check buttons | Complete habits without opening the app | MOBILE |
-| Large widget: full daily dashboard with progress rings, streak, next quest | "Replace the homescreen" experience | MOBILE |
-| StandBy Mode support | Full-screen widget display while charging (nightstand dashboard) | MOBILE |
-| Live Activities for active quest timers | Real-time progress during focus sessions | MOBILE |
+**Status: MERGED** (PR #82)
 
-### Milestone 2 — Apple Watch Companion
+| Task | Notes | Owner | Status |
+|------|-------|-------|--------|
+| Set up `expo-widgets` for iOS home screen widgets | WidgetKit + App Groups, no native Swift required | MOBILE | DONE |
+| Small widget: streak count + daily XP progress ring | Glanceable daily status | MOBILE | DONE |
+| Medium widget: top 3 daily quests with interactive check buttons | Complete habits without opening the app | MOBILE | DONE |
+| Large widget: full daily dashboard with progress rings, streak, next quest | "Replace the homescreen" experience | MOBILE | DONE |
+| StandBy Mode support | Full-screen widget display while charging (nightstand dashboard) | MOBILE | DONE |
+| Live Activities for active quest timers | Real-time progress during focus sessions | MOBILE | DONE |
 
-| Task | Notes | Owner |
-|------|-------|-------|
-| WatchConnectivity bridge via `react-native-watch-connectivity` | EAS Build bare workflow, bridge RN ↔ WatchOS | MOBILE |
-| Watch app: quest list with quick-complete buttons | Standalone habit completion (no iPhone needed) | MOBILE |
-| Complications: streak count + daily progress rings | Glanceable on watch face | MOBILE |
-| Haptic reminders for upcoming quests | Gentle wrist taps at quest-scheduled times | MOBILE |
-| HealthKit auto-logging from Watch | Steps, workouts, sleep → auto-complete matching quests | MOBILE |
+### Milestone 2 — Apple Watch Companion -- PENDING
 
-### Milestone 3 — Compassionate Streak Design
+**Status: NOT STARTED** (Issue #81)
 
-| Task | Notes | Owner |
-|------|-------|-------|
-| Streak Freezes | Bank a freeze on good days, auto-apply on misses (Duolingo model) | ARCHITECT / MOBILE |
-| Comeback Quests | Miss a day → special "Welcome Back" quest with bonus XP | ARCHITECT / MOBILE |
-| Progressive onboarding | Start with ONE morning habit, add more over weeks (Fabulous model) | MOBILE |
-| 2-minute minimum quest bars | Every quest has a minimum bar so low "you'd feel silly saying no" | ARCHITECT |
-| Gentle re-engagement notifications | "We missed you!" not "You broke your streak!" | MOBILE |
+| Task | Notes | Owner | Status |
+|------|-------|-------|--------|
+| WatchConnectivity bridge via `react-native-watch-connectivity` | EAS Build bare workflow, bridge RN ↔ WatchOS | MOBILE | PENDING |
+| Watch app: quest list with quick-complete buttons | Standalone habit completion (no iPhone needed) | MOBILE | PENDING |
+| Complications: streak count + daily progress rings | Glanceable on watch face | MOBILE | PENDING |
+| Haptic reminders for upcoming quests | Gentle wrist taps at quest-scheduled times | MOBILE | PENDING |
+| HealthKit auto-logging from Watch | Steps, workouts, sleep → auto-complete matching quests | MOBILE | PENDING |
+
+### Milestone 3 — Compassionate Streak Design -- IN PROGRESS
+
+**Status: Implementation complete, being rebased for merge**
+
+| Task | Notes | Owner | Status |
+|------|-------|-------|--------|
+| Streak Freezes | Bank a freeze on good days, auto-apply on misses (Duolingo model) | ARCHITECT / MOBILE | DONE (rebasing) |
+| Comeback Quests | Miss a day → special "Welcome Back" quest with bonus XP | ARCHITECT / MOBILE | DONE (rebasing) |
+| Progressive onboarding | Start with ONE morning habit, add more over weeks (Fabulous model) | MOBILE | DONE (rebasing) |
+| 2-minute minimum quest bars | Every quest has a minimum bar so low "you'd feel silly saying no" | ARCHITECT | DONE (rebasing) |
+| Gentle re-engagement notifications | "We missed you!" not "You broke your streak!" | MOBILE | DONE (rebasing) |
 
 ### Milestone 4 — History Logging MVP
 
@@ -242,35 +272,42 @@ Add AI-powered features that differentiate DYDYD from competitors. The LLM coach
 
 ---
 
-## Current State Summary (as of 2026-07-07)
+## Current State Summary (as of 2026-07-08)
 
 ### What exists
 
 | Layer | Coverage |
 |-------|----------|
-| **Backend** | 7 route files (auth, quests, health, progress, badges, user, notifications), Prisma schema (15 models), JWT auth with refresh tokens, rate limiting, streak logic. 94+ unit tests across auth, quests, and user routes. 7 critical bugs fixed. |
-| **Mobile** | 19 screens, 14 components, 7 Redux slices, health integration (HealthKit, Google Fit, Garmin, Samsung), offline sync queue, push notifications (Expo), Sentry. 19 test files. |
+| **Backend** | 7 route files (auth, quests, health, progress, badges, user, notifications), Hono 4 framework, Zod validation, Prisma schema (15 models), JWT auth with refresh tokens, rate limiting, streak logic. 166+ unit tests across all route suites using Hono native `app.request()`. Bun runtime (primary) with Node.js fallback. |
+| **Mobile** | 19 screens, 14 components, 7 Redux slices, health integration (HealthKit, Google Fit, Garmin, Samsung), offline sync queue, push notifications (Expo), Sentry, interactive iOS widgets (WidgetKit). 19 test files. |
 | **Shared** | Types, constants, utils. 2 test files, 120/120 passing. |
-| **Infrastructure** | GitHub Actions CI workflow (test + lint + typecheck), EAS build configs (dev/preview/production), Sentry integration. 47+ merged PRs, 59+ commits. |
+| **Infrastructure** | GitHub Actions CI workflow (test + lint + typecheck), EAS build configs (dev/preview/production), Sentry integration. 37+ merged PRs. |
 
-### Resolved since last update (2026-06-17 → 2026-07-07)
+### Resolved since last update (2026-07-07 → 2026-07-08)
 
-- Backend unit tests landed on main (auth, quests, user routes — 94+ tests)
+- Backend modernized: Express 4 -> Hono 4, express-validator -> Zod, Node.js -> Bun (PR #88 merged)
+- iOS interactive widgets shipped (PR #82 merged) — small, medium, large, StandBy Mode, Live Activities
+- Compassionate streak design implemented (rebasing for merge) — Streak Freezes, Comeback Quests, progressive onboarding
+- Mobile stack upgrade in progress (PR #89 pending) — Expo 50->53, RN 0.73->0.79, React 18->19, React Navigation 6->7
+
+### Previously resolved (2026-06-17 → 2026-07-07)
+
+- Backend unit tests landed on main (auth, quests, user routes — 94+ tests expanded to 166+)
 - 7 critical backend bugs fixed (route validation, Prisma queries, streaks)
-- All 10 open PRs merged or superseded
+- All 10 open PRs from Phase 3A merged or superseded
 - Milestones v0.2.0 and v0.3.0 closed
 - CLAUDE.md and SKILL.md updated with testing/SDLC guidance
 
 ### Remaining gaps
 
+- Mobile stack upgrade pending merge (RN 0.73->0.79, React Navigation 6->7 — PR #89)
+- Compassionate streaks rebasing for merge
+- Apple Watch companion not started (Issue #81, Phase 4A M2)
 - Mobile test coverage incomplete (auth screens, HomeScreen, Redux slices — Phase 3B)
 - No E2E test framework installed (Detox vs Maestro decision deferred)
 - CNG migration not complete (android/ios gitignored but Swift code not in config plugins)
 - EAS Updates (OTA) not configured
-- Widgets exist as Swift stubs but not connected to RN (Phase 4A priority)
-- Apple Watch companion Swift code not connected (Phase 4A priority)
 - History logging PRD approved but not implemented (Phase 4A M4)
-- Compassionate streak design not implemented (Phase 4A M3)
 - No integration tests (blocked on Docker Postgres CI — Phase 4B)
 - No coverage thresholds in CI (Phase 4B)
 
@@ -310,4 +347,4 @@ The roadmap was resequenced based on a CTO-level review. Key strategic changes:
 
 ---
 
-*Last updated: 2026-07-07*
+*Last updated: 2026-07-08*
