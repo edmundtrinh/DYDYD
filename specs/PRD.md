@@ -509,14 +509,14 @@ Compassionate streak design ensures the app encourages rather than punishes. Fou
 - Freezes are displayed as snowflake/shield icons on the streak display
 
 **Comeback Quests** (re-engagement):
-- After missing 1-7 days, the user is offered a special "Welcome Back" quest
+- After missing 1-14 days, the user is offered a special "Welcome Back" quest
 - Comeback quests are selected from simple Mental Wellness daily quests
 - Bonus XP multiplier of 1.5x (`COMEBACK_CONFIG.bonusXPMultiplier: 1.5`)
-- After 7+ days of absence, no comeback quest is offered (user needs a fresh start)
+- After 14+ days of absence, no comeback quest is offered (user needs a fresh start)
 - Completing a comeback quest resets `lastActiveDate` and restarts `activeDaysCount`
 
 **Progressive Onboarding** (The Fabulous model):
-- New users start with 1 quest slot (`PROGRESSIVE_ONBOARDING.initialQuestLimit: 1`)
+- New users start with 3 quest slots (`PROGRESSIVE_ONBOARDING.initialQuestLimit: 3`)
 - Every 3 active days, 2 more quest slots unlock (`daysToUnlockMore: 3`, `maxQuestsPerUnlock: 2`)
 - After reaching onboarding stage 5 (11+ quest slots), the standard maximum applies (`MAX_ACTIVE_QUESTS: 50`)
 - Prevents new-user overwhelm by gradually introducing complexity
@@ -1009,7 +1009,7 @@ The `User.isPremium` and `premiumExpiresAt` fields exist in the schema. Premium 
 | **XP** | Experience points -- the primary progression currency, earned from quest completions and badge bonuses |
 | **Streak** | Consecutive periods (days/weeks/months) with at least one completion of a given quest |
 | **Freeze** | A streak freeze (planned) that preserves a streak through one missed day, earned by maintaining active days |
-| **Comeback Quest** | A special "Welcome Back" quest (planned) offered to users returning after 1-7 days of absence, with 1.5x XP bonus |
+| **Comeback Quest** | A special "Welcome Back" quest offered to users returning after 1-14 days of absence, with 1.5x XP bonus |
 | **TimeBucket** | A time-of-day classification (planned) -- EARLY_MORNING, MORNING, AFTERNOON, EVENING, NIGHT -- recorded on each completion |
 | **Period** | The time window for a quest's frequency: one day (daily), one week (weekly), or one month (monthly) |
 | **Level Title** | A narrative title (e.g., "Novice Adventurer", "Mythic Hero") that unlocks at specific level thresholds |
