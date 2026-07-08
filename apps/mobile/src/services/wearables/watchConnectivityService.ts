@@ -1,12 +1,33 @@
 // ============================================
 // DYDYD - Watch Connectivity Service
 // ============================================
-// Handles communication between mobile app and wearable devices
+// Handles communication between mobile app and Apple Watch
+// via react-native-watch-connectivity with graceful degradation
 
-import { Platform, NativeModules, NativeEventEmitter } from 'react-native';
-import { Quest, QuestCompletion, UserQuest } from '@dydyd/shared';
+import { UserQuest } from '@dydyd/shared';
 
-// Message types for watch communication
+// Minimal typed interface for the react-native-watch-connectivity native module.
+// Only the methods actually used by this service are declared.
+interface WatchConnectivityModule {
+  getIsPaired(): Promise<boolean>;
+  getIsWatchAppInstalled(): Promise<boolean>;
+  getReachability(): Promise<boolean>;
+  sendMessage(message: Record<string, unknown>): Promise<void>;
+  updateApplicationContext(context: Record<string, unknown>): Promise<void>;
+  watchEvents: {
+    on(event: string, callback: (data: any) => void): () => void;
+  };
+}
+
+// Conditional import — react-native-watch-connectivity is a native iOS module
+// that won't be available on Android, in test environments, or during development on Windows
+let watchModule: WatchConnectivityModule | null = null;
+try {
+  watchModule = require('react-native-watch-connectivity') as WatchConnectivityModule;
+} catch {
+  // Module not available — all operations will gracefully degrade
+}
+
 export enum WatchMessageType {
   SYNC_QUESTS = 'SYNC_QUESTS',
   QUEST_COMPLETED = 'QUEST_COMPLETED',
@@ -37,83 +58,60 @@ class WatchConnectivityService {
     isWatchAppInstalled: false,
   };
   private messageHandlers: WatchMessageHandler[] = [];
-  private eventEmitter: NativeEventEmitter | null = null;
+  private unsubscribeReachability: (() => void) | null = null;
+  private unsubscribeMessages: (() => void) | null = null;
 
   async initialize(): Promise<WatchState> {
     if (this.isInitialized) {
       return this.watchState;
     }
 
-    if (Platform.OS === 'ios') {
-      await this.initializeAppleWatch();
-    } else if (Platform.OS === 'android') {
-      await this.initializeWearOS();
+    if (!watchModule) {
+      this.isInitialized = true;
+      return this.watchState;
+    }
+
+    try {
+      const paired: boolean = await watchModule.getIsPaired();
+      const installed: boolean = await watchModule.getIsWatchAppInstalled();
+      const reachable: boolean = await watchModule.getReachability();
+
+      this.watchState = {
+        isPaired: paired,
+        isReachable: reachable,
+        isWatchAppInstalled: installed,
+      };
+
+      this.unsubscribeReachability = watchModule.watchEvents.on(
+        'reachability',
+        (reachable: boolean) => {
+          this.watchState = { ...this.watchState, isReachable: reachable };
+        },
+      );
+
+      this.unsubscribeMessages = watchModule.watchEvents.on(
+        'message',
+        (message: Record<string, any>) => {
+          const watchMessage: WatchMessage = {
+            type: message.type as WatchMessageType,
+            payload: message.payload ?? message,
+            timestamp: message.timestamp ?? Date.now(),
+          };
+          this.handleIncomingMessage(watchMessage);
+        },
+      );
+    } catch (error) {
+      console.log('Watch connectivity not available:', error);
     }
 
     this.isInitialized = true;
     return this.watchState;
   }
 
-  private async initializeAppleWatch(): Promise<void> {
-    try {
-      // This would use a native module for WatchConnectivity
-      // Placeholder for react-native-watch-connectivity or custom native module
-      const WatchConnectivity = NativeModules.WatchConnectivity;
-      
-      if (WatchConnectivity) {
-        this.eventEmitter = new NativeEventEmitter(WatchConnectivity);
-        
-        // Listen for watch state changes
-        this.eventEmitter.addListener('watchStateChanged', (state: WatchState) => {
-          this.watchState = state;
-        });
-
-        // Listen for messages from watch
-        this.eventEmitter.addListener('messageReceived', (message: WatchMessage) => {
-          this.handleIncomingMessage(message);
-        });
-
-        // Get initial state
-        const state = await WatchConnectivity.getWatchState();
-        this.watchState = state;
-      }
-    } catch (error) {
-      console.log('Apple Watch connectivity not available:', error);
-    }
-  }
-
-  private async initializeWearOS(): Promise<void> {
-    try {
-      // This would use Wearable Data Layer API via native module
-      const WearOSConnectivity = NativeModules.WearOSConnectivity;
-      
-      if (WearOSConnectivity) {
-        this.eventEmitter = new NativeEventEmitter(WearOSConnectivity);
-        
-        // Listen for connection changes
-        this.eventEmitter.addListener('connectionChanged', (state: WatchState) => {
-          this.watchState = state;
-        });
-
-        // Listen for messages from watch
-        this.eventEmitter.addListener('messageReceived', (message: WatchMessage) => {
-          this.handleIncomingMessage(message);
-        });
-
-        // Get initial state
-        const state = await WearOSConnectivity.getConnectionState();
-        this.watchState = state;
-      }
-    } catch (error) {
-      console.log('Wear OS connectivity not available:', error);
-    }
-  }
-
   private handleIncomingMessage(message: WatchMessage): void {
     this.messageHandlers.forEach(handler => handler(message));
   }
 
-  // Subscribe to watch messages
   onMessage(handler: WatchMessageHandler): () => void {
     this.messageHandlers.push(handler);
     return () => {
@@ -121,10 +119,16 @@ class WatchConnectivityService {
     };
   }
 
-  // Send message to watch
+  addMessageListener(callback: WatchMessageHandler): () => void {
+    return this.onMessage(callback);
+  }
+
+  removeMessageListener(): void {
+    this.messageHandlers = [];
+  }
+
   async sendMessage(type: WatchMessageType, payload: any): Promise<boolean> {
-    if (!this.watchState.isReachable) {
-      console.log('Watch is not reachable');
+    if (!watchModule || !this.watchState.isReachable) {
       return false;
     }
 
@@ -135,13 +139,7 @@ class WatchConnectivityService {
     };
 
     try {
-      if (Platform.OS === 'ios') {
-        const WatchConnectivity = NativeModules.WatchConnectivity;
-        await WatchConnectivity?.sendMessage(message);
-      } else if (Platform.OS === 'android') {
-        const WearOSConnectivity = NativeModules.WearOSConnectivity;
-        await WearOSConnectivity?.sendMessage(message);
-      }
+      await watchModule.sendMessage({ ...message });
       return true;
     } catch (error) {
       console.error('Failed to send message to watch:', error);
@@ -149,7 +147,32 @@ class WatchConnectivityService {
     }
   }
 
-  // Sync quests to watch
+  async updateApplicationContext(data: Record<string, any>): Promise<boolean> {
+    if (!watchModule) {
+      return false;
+    }
+
+    try {
+      await watchModule.updateApplicationContext(data);
+      return true;
+    } catch (error) {
+      console.error('Failed to update application context:', error);
+      return false;
+    }
+  }
+
+  async getReachability(): Promise<boolean> {
+    if (!watchModule) {
+      return false;
+    }
+
+    try {
+      return await watchModule.getReachability();
+    } catch {
+      return false;
+    }
+  }
+
   async syncQuests(quests: UserQuest[]): Promise<boolean> {
     const simplifiedQuests = quests.map(q => ({
       id: q.id,
@@ -165,7 +188,6 @@ class WatchConnectivityService {
     return this.sendMessage(WatchMessageType.SYNC_QUESTS, { quests: simplifiedQuests });
   }
 
-  // Sync progress summary to watch
   async syncProgress(progress: {
     todayXP: number;
     totalXP: number;
@@ -176,7 +198,6 @@ class WatchConnectivityService {
     return this.sendMessage(WatchMessageType.SYNC_PROGRESS, progress);
   }
 
-  // Update watch complications
   async updateComplications(data: {
     todayXP: number;
     questsRemaining: number;
@@ -185,23 +206,19 @@ class WatchConnectivityService {
     return this.sendMessage(WatchMessageType.UPDATE_COMPLICATIONS, data);
   }
 
-  // Get current watch state
   getState(): WatchState {
     return this.watchState;
   }
 
-  // Check if watch is available
   isAvailable(): boolean {
     return this.watchState.isPaired && this.watchState.isWatchAppInstalled;
   }
 
-  // Cleanup
   cleanup(): void {
-    if (this.eventEmitter) {
-      this.eventEmitter.removeAllListeners('watchStateChanged');
-      this.eventEmitter.removeAllListeners('connectionChanged');
-      this.eventEmitter.removeAllListeners('messageReceived');
-    }
+    this.unsubscribeReachability?.();
+    this.unsubscribeMessages?.();
+    this.unsubscribeReachability = null;
+    this.unsubscribeMessages = null;
     this.messageHandlers = [];
     this.isInitialized = false;
   }
