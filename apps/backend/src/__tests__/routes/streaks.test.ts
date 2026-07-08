@@ -78,7 +78,7 @@ describe('GET /api/streaks/status', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.success).toBe(true);
     expect(body.data).toMatchObject({
       currentDayStreak: 5,
@@ -103,7 +103,7 @@ describe('GET /api/streaks/status', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.freezeAvailable).toBe(false);
   });
 
@@ -118,7 +118,7 @@ describe('GET /api/streaks/status', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.freezeAvailable).toBe(false);
   });
 
@@ -135,7 +135,7 @@ describe('GET /api/streaks/status', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.comebackEligible).toBe(true);
   });
 
@@ -150,7 +150,7 @@ describe('GET /api/streaks/status', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.comebackEligible).toBe(false);
   });
 
@@ -165,7 +165,7 @@ describe('GET /api/streaks/status', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.comebackEligible).toBe(false);
   });
 
@@ -193,7 +193,7 @@ describe('GET /api/streaks/status', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.nextFreezeIn).toBe(4);
   });
 });
@@ -213,7 +213,7 @@ describe('POST /api/streaks/freeze', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.success).toBe(true);
     expect(body.data).toEqual({
       used: true,
@@ -240,7 +240,7 @@ describe('POST /api/streaks/freeze', () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.success).toBe(false);
     expect(body.error.message).toContain('No streak freezes available');
   });
@@ -256,7 +256,7 @@ describe('POST /api/streaks/freeze', () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.success).toBe(false);
   });
 
@@ -276,7 +276,7 @@ describe('POST /api/streaks/freeze', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.used).toBe(true);
   });
 
@@ -308,12 +308,14 @@ describe('GET /api/streaks/comeback', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.success).toBe(true);
     expect(body.data).toHaveProperty('bonusXPMultiplier', 1.5);
     expect(body.data).toHaveProperty('isComeback', true);
     expect(body.data).toHaveProperty('name');
     expect(body.data).toHaveProperty('baseXP');
+    expect(body.data).toHaveProperty('comebackXP');
+    expect(body.data.comebackXP).toBeGreaterThan(body.data.baseXP);
     expect(body.data.id).toMatch(/^comeback-/);
   });
 
@@ -328,7 +330,7 @@ describe('GET /api/streaks/comeback', () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.success).toBe(false);
     expect(body.error.message).toContain('Not eligible');
   });
@@ -344,7 +346,7 @@ describe('GET /api/streaks/comeback', () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.error.message).toContain('No activity history');
   });
 
@@ -361,7 +363,7 @@ describe('GET /api/streaks/comeback', () => {
     });
 
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.error.message).toContain('Not eligible');
   });
 
@@ -389,7 +391,7 @@ describe('GET /api/streaks/comeback', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.isComeback).toBe(true);
   });
 
@@ -406,7 +408,7 @@ describe('GET /api/streaks/comeback', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body: any = await res.json();
     expect(body.data.isComeback).toBe(true);
   });
 });

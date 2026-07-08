@@ -145,6 +145,7 @@ export interface QuestCompletion {
 export interface ComebackQuest extends Quest {
   bonusXPMultiplier: number;
   isComeback: true;
+  comebackXP: number;
 }
 
 export interface StreakFreezeResult {

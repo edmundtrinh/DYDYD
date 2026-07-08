@@ -10,7 +10,7 @@ import {
   COMEBACK_CONFIG,
   PROGRESSIVE_ONBOARDING,
 } from '../constants';
-import { StreakFreezeResult, ComebackQuest } from '../types';
+import { StreakFreezeResult, ComebackQuest, QuestCategory, QuestFrequency } from '../types';
 
 // ==================== Constants Existence ====================
 
@@ -216,8 +216,8 @@ describe('Type Exports', () => {
       id: 'test',
       name: 'Comeback',
       description: 'Welcome back',
-      category: 'physical_health' as any,
-      frequency: 'daily' as any,
+      category: QuestCategory.PHYSICAL_HEALTH,
+      frequency: QuestFrequency.DAILY,
       baseXP: 15,
       maxCompletionsPerPeriod: 1,
       isDefault: false,
@@ -226,6 +226,7 @@ describe('Type Exports', () => {
       createdAt: new Date(),
       bonusXPMultiplier: 1.5,
       isComeback: true,
+      comebackXP: 22,
     };
     expect(quest.bonusXPMultiplier).toBe(1.5);
     expect(quest.isComeback).toBe(true);

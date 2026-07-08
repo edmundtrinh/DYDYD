@@ -200,15 +200,50 @@ export async function calculateFreezeAwareDayStreak(
   const result = await calculateOverallDayStreak(userId);
 
   // If a freeze was used today and there's a gap in the raw streak,
-  // the freeze bridges that gap — preserve the streak count.
+  // the freeze bridges that gap — preserve the streak that existed
+  // before the missed day, not just bump to 1.
   if (streakFreezeUsedAt && isSameDay(streakFreezeUsedAt, new Date())) {
-    // The freeze covers today's missed day, so the streak continues.
-    // We only bump if the raw streak shows 0, indicating a gap that
-    // the freeze should bridge. If the user also completed a quest
-    // today, the raw streak already reflects that and no adjustment
-    // is needed.
     if (result.currentDayStreak === 0) {
-      result.currentDayStreak = 1;
+      // Freeze bridges the gap — calculate what streak existed before the miss
+      const completions = await prisma.questCompletion.findMany({
+        where: { userQuest: { userId } },
+        select: { completedAt: true },
+        orderBy: { completedAt: 'desc' },
+      });
+
+      if (completions.length > 0) {
+        const daySet = new Set<string>();
+        for (const c of completions) {
+          daySet.add(getStartOfDay(c.completedAt).toISOString());
+        }
+        const uniqueDays = Array.from(daySet)
+          .map((iso) => new Date(iso))
+          .sort((a, b) => b.getTime() - a.getTime());
+
+        // Count backwards from 2 days ago (the last day before the gap)
+        const twoDaysAgo = getStartOfDay(new Date());
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        let streakBeforeGap = 0;
+        let checkDate = twoDaysAgo;
+
+        for (const day of uniqueDays) {
+          const dayStart = getStartOfDay(day);
+          const gap = getDaysBetween(checkDate, dayStart);
+          if (gap === 0) {
+            streakBeforeGap++;
+            checkDate = new Date(checkDate);
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+
+        // Freeze preserves the streak: historic streak + 1 for the freeze day
+        result.currentDayStreak = streakBeforeGap + 1;
+      } else {
+        // No completions at all — freeze still covers 1 day
+        result.currentDayStreak = 1;
+      }
     }
   }
 
@@ -297,7 +332,7 @@ export async function trackActiveDay(
   // Award a freeze every freezeEarnInterval active days, up to maxFreezes
   const shouldAwardFreeze =
     newActiveDays % STREAK_FREEZE_CONFIG.freezeEarnInterval === 0 &&
-    user.streakFreezes < STREAK_FREEZE_CONFIG.maxFreezes;
+    user.streakFreezes < user.maxStreakFreezes;
 
   if (shouldAwardFreeze) {
     freezeAwarded = true;

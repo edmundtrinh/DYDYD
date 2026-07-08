@@ -79,29 +79,33 @@ app.get('/status', authenticate, async (c) => {
 app.post('/freeze', authenticate, async (c) => {
   const userId = c.get('userId');
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-  });
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+    });
 
-  if (!user) {
-    throw Errors.notFound('User');
-  }
+    if (!user) {
+      throw Errors.notFound('User');
+    }
 
-  const available = canUseStreakFreeze({
-    streakFreezes: user.streakFreezes,
-    streakFreezeUsedAt: user.streakFreezeUsedAt?.toISOString(),
-  });
+    const available = canUseStreakFreeze({
+      streakFreezes: user.streakFreezes,
+      streakFreezeUsedAt: user.streakFreezeUsedAt?.toISOString(),
+    });
 
-  if (!available) {
-    throw Errors.badRequest('No streak freezes available or already used today');
-  }
+    if (!available) {
+      throw Errors.badRequest('No streak freezes available or already used today');
+    }
 
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      streakFreezes: user.streakFreezes - 1,
-      streakFreezeUsedAt: new Date(),
-    },
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: {
+        streakFreezes: user.streakFreezes - 1,
+        streakFreezeUsedAt: new Date(),
+      },
+    });
+
+    return updatedUser;
   });
 
   const response: ApiResponse<{
@@ -112,7 +116,7 @@ app.post('/freeze', authenticate, async (c) => {
     success: true,
     data: {
       used: true,
-      freezesRemaining: updatedUser.streakFreezes,
+      freezesRemaining: result.streakFreezes,
       streakPreserved: true,
     },
   };
@@ -159,7 +163,8 @@ app.get('/comeback', authenticate, async (c) => {
     createdAt: new Date(),
     bonusXPMultiplier: COMEBACK_CONFIG.bonusXPMultiplier,
     isComeback: true as const,
-    baseXP: calculateComebackXP(simpleQuest.baseXP),
+    baseXP: simpleQuest.baseXP,
+    comebackXP: calculateComebackXP(simpleQuest.baseXP),
   };
 
   const response: ApiResponse<typeof comebackQuest> = {

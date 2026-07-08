@@ -43,6 +43,12 @@ jest.mock('../../lib/prisma', () => {
   };
 });
 
+// Mock streak functions — called after quest completion but non-critical
+jest.mock('../../lib/streaks', () => ({
+  checkAndAutoApplyFreeze: jest.fn().mockResolvedValue({ freezeApplied: false, freezesRemaining: 0 }),
+  trackActiveDay: jest.fn().mockResolvedValue({ activeDaysCount: 1, freezeAwarded: false }),
+}));
+
 // Mock auth middleware — authenticate sets userId via Hono context; optionalAuth is a passthrough
 jest.mock('../../middleware/auth', () => ({
   authenticate: async (c: any, next: any) => {
