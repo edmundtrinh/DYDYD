@@ -2,11 +2,13 @@
 // DYDYD - Shared Utilities
 // ============================================
 
-import { QuestFrequency, DailyProgress, QuestCategory } from './types';
+import { QuestFrequency, DailyProgress, QuestCategory, StreakFreezeResult } from './types';
 import {
   calculateXPForLevel,
   getLevelFromXP,
   calculateTotalXPForLevel,
+  COMEBACK_CONFIG,
+  PROGRESSIVE_ONBOARDING,
 } from './constants';
 
 // -------------------- Date Utilities --------------------
@@ -286,4 +288,47 @@ export const sortBy = <T>(
     if (valA > valB) return order === 'asc' ? 1 : -1;
     return 0;
   });
+};
+
+// -------------------- Compassionate Streak Utilities --------------------
+
+export const canUseStreakFreeze = (user: {
+  streakFreezes: number;
+  streakFreezeUsedAt?: string;
+}): boolean => {
+  if (user.streakFreezes <= 0) return false;
+  if (user.streakFreezeUsedAt) {
+    const usedDate = new Date(user.streakFreezeUsedAt);
+    const today = new Date();
+    if (isSameDay(usedDate, today)) return false;
+  }
+  return true;
+};
+
+export const applyStreakFreeze = (user: {
+  streakFreezes: number;
+}): StreakFreezeResult => {
+  if (user.streakFreezes <= 0) {
+    return { used: false, freezesRemaining: 0, streakPreserved: false };
+  }
+  return { used: true, freezesRemaining: user.streakFreezes - 1, streakPreserved: true };
+};
+
+export const shouldOfferComebackQuest = (
+  lastActiveDate: string | Date,
+  now?: Date
+): boolean => {
+  const lastActive = lastActiveDate instanceof Date ? lastActiveDate : new Date(lastActiveDate);
+  const current = now ?? new Date();
+  const daysMissed = getDaysBetween(lastActive, current);
+  return daysMissed >= 1 && daysMissed <= COMEBACK_CONFIG.maxMissedDays;
+};
+
+export const calculateComebackXP = (baseXP: number): number => {
+  return Math.floor(baseXP * COMEBACK_CONFIG.bonusXPMultiplier);
+};
+
+export const getOnboardingQuestLimit = (activeDaysCount: number): number => {
+  const unlocks = Math.floor(activeDaysCount / PROGRESSIVE_ONBOARDING.daysToUnlockMore);
+  return PROGRESSIVE_ONBOARDING.initialQuestLimit + unlocks * PROGRESSIVE_ONBOARDING.maxQuestsPerUnlock;
 };

@@ -14,6 +14,7 @@ import progressRoutes from './routes/progress';
 import badgeRoutes from './routes/badges';
 import notificationRoutes from './routes/notifications';
 import healthRoutes from './routes/health';
+import streakRoutes from './routes/streaks';
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.route('/api/progress', progressRoutes);
 app.route('/api/badges', badgeRoutes);
 app.route('/api/notifications', notificationRoutes);
 app.route('/api/health', healthRoutes);
+app.route('/api/streaks', streakRoutes);
 
 // 404 handler
 app.notFound((c) => {

@@ -6,6 +6,7 @@ import { authenticate, optionalAuth, AuthEnv } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
 import { ApiResponse, Quest, HealthDataSource } from '@dydyd/shared';
+import { checkAndAutoApplyFreeze, trackActiveDay } from '../lib/streaks';
 
 const app = new Hono<AuthEnv>();
 
@@ -283,6 +284,22 @@ app.post('/:id/complete', authenticate, async (c) => {
 
     return [newCompletion, updatedQuest];
   });
+
+  // Track active day and check for auto-freeze after successful completion.
+  // Order matters: checkAndAutoApplyFreeze reads lastActiveDate to detect a gap,
+  // so it must run before trackActiveDay updates lastActiveDate to today.
+  try {
+    await checkAndAutoApplyFreeze(userId);
+  } catch {
+    // Non-critical — log but don't fail the completion response
+    console.error('Failed to check/auto-apply freeze for user', userId);
+  }
+  try {
+    await trackActiveDay(userId);
+  } catch {
+    // Non-critical — log but don't fail the completion response
+    console.error('Failed to track active day for user', userId);
+  }
 
   const response: ApiResponse<{ completion: any; userQuest: any; xpEarned: number }> = {
     success: true,

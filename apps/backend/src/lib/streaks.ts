@@ -4,6 +4,9 @@ import {
   QuestFrequency,
   getStartOfDay,
   getDaysBetween,
+  canUseStreakFreeze,
+  STREAK_FREEZE_CONFIG,
+  isSameDay,
 } from '@dydyd/shared';
 
 /**
@@ -179,4 +182,170 @@ export async function calculateOverallDayStreak(
   }
 
   return { currentDayStreak, longestDayStreak };
+}
+
+/**
+ * Calculate a freeze-aware day streak for a user. This wraps
+ * calculateOverallDayStreak and adds +1 to the current streak if:
+ * - The raw streak would otherwise be 0 (no completion today/yesterday), AND
+ * - A freeze was used today (streakFreezeUsedAt matches today).
+ *
+ * This ensures the streak status endpoint reflects the freeze without
+ * modifying the core calculateOverallDayStreak signature used by progress.
+ */
+export async function calculateFreezeAwareDayStreak(
+  userId: string,
+  streakFreezeUsedAt: Date | null
+): Promise<{ currentDayStreak: number; longestDayStreak: number }> {
+  const result = await calculateOverallDayStreak(userId);
+
+  // If a freeze was used today and there's a gap in the raw streak,
+  // the freeze bridges that gap — preserve the streak that existed
+  // before the missed day, not just bump to 1.
+  if (streakFreezeUsedAt && isSameDay(streakFreezeUsedAt, new Date())) {
+    if (result.currentDayStreak === 0) {
+      // Freeze bridges the gap — calculate what streak existed before the miss
+      const completions = await prisma.questCompletion.findMany({
+        where: { userQuest: { userId } },
+        select: { completedAt: true },
+        orderBy: { completedAt: 'desc' },
+      });
+
+      if (completions.length > 0) {
+        const daySet = new Set<string>();
+        for (const c of completions) {
+          daySet.add(getStartOfDay(c.completedAt).toISOString());
+        }
+        const uniqueDays = Array.from(daySet)
+          .map((iso) => new Date(iso))
+          .sort((a, b) => b.getTime() - a.getTime());
+
+        // Count backwards from 2 days ago (the last day before the gap)
+        const twoDaysAgo = getStartOfDay(new Date());
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        let streakBeforeGap = 0;
+        let checkDate = twoDaysAgo;
+
+        for (const day of uniqueDays) {
+          const dayStart = getStartOfDay(day);
+          const gap = getDaysBetween(checkDate, dayStart);
+          if (gap === 0) {
+            streakBeforeGap++;
+            checkDate = new Date(checkDate);
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+
+        // Freeze preserves the streak: historic streak + 1 for the freeze day
+        result.currentDayStreak = streakBeforeGap + 1;
+      } else {
+        // No completions at all — freeze still covers 1 day
+        result.currentDayStreak = 1;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check if the user missed exactly 1 day and auto-apply a streak freeze.
+ * Returns whether a freeze was applied. This is called during streak
+ * recalculation or when a user completes a quest.
+ *
+ * This function is idempotent within a single day -- if a freeze was
+ * already used today (streakFreezeUsedAt matches today), it will not
+ * consume another freeze.
+ */
+export async function checkAndAutoApplyFreeze(
+  userId: string
+): Promise<{ freezeApplied: boolean; freezesRemaining: number }> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    return { freezeApplied: false, freezesRemaining: 0 };
+  }
+
+  // If user has no last active date, nothing to freeze
+  if (!user.lastActiveDate) {
+    return { freezeApplied: false, freezesRemaining: user.streakFreezes };
+  }
+
+  const today = getStartOfDay(new Date());
+  const lastActive = getStartOfDay(user.lastActiveDate);
+  const gap = getDaysBetween(lastActive, today);
+
+  // Only auto-freeze if exactly 1 day was missed (gap of 2 means yesterday was skipped)
+  if (gap !== 2) {
+    return { freezeApplied: false, freezesRemaining: user.streakFreezes };
+  }
+
+  const available = canUseStreakFreeze({
+    streakFreezes: user.streakFreezes,
+    streakFreezeUsedAt: user.streakFreezeUsedAt?.toISOString(),
+  });
+
+  if (!available) {
+    return { freezeApplied: false, freezesRemaining: user.streakFreezes };
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      streakFreezes: user.streakFreezes - 1,
+      streakFreezeUsedAt: new Date(),
+    },
+  });
+
+  return { freezeApplied: true, freezesRemaining: updatedUser.streakFreezes };
+}
+
+/**
+ * Track an active day for the user and potentially award a new streak freeze.
+ * Should be called when the user completes a quest. Idempotent within a day.
+ */
+export async function trackActiveDay(
+  userId: string
+): Promise<{ activeDaysCount: number; freezeAwarded: boolean }> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    return { activeDaysCount: 0, freezeAwarded: false };
+  }
+
+  const today = new Date();
+
+  // If already tracked today, skip
+  if (user.lastActiveDate && isSameDay(user.lastActiveDate, today)) {
+    return { activeDaysCount: user.activeDaysCount, freezeAwarded: false };
+  }
+
+  const newActiveDays = user.activeDaysCount + 1;
+  let freezeAwarded = false;
+
+  // Award a freeze every freezeEarnInterval active days, up to maxFreezes
+  const shouldAwardFreeze =
+    newActiveDays % STREAK_FREEZE_CONFIG.freezeEarnInterval === 0 &&
+    user.streakFreezes < user.maxStreakFreezes;
+
+  if (shouldAwardFreeze) {
+    freezeAwarded = true;
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      activeDaysCount: newActiveDays,
+      lastActiveDate: today,
+      ...(shouldAwardFreeze ? { streakFreezes: user.streakFreezes + 1 } : {}),
+    },
+  });
+
+  return { activeDaysCount: newActiveDays, freezeAwarded };
 }

@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "streakFreezes" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN "maxStreakFreezes" INTEGER NOT NULL DEFAULT 3;
+ALTER TABLE "users" ADD COLUMN "streakFreezeUsedAt" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "activeDaysCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN "lastActiveDate" TIMESTAMP(3);
