@@ -24,7 +24,7 @@ author: "Edmund Trinh"
 
 ## Overview
 
-The DYDYD backend is an **Express 4** REST API written in TypeScript. It uses **Prisma ORM** for PostgreSQL access and **JWT** for authentication. The server is defined in `apps/backend/src/index.ts` and listens on port 3000 by default.
+The DYDYD backend is a **Hono 4** REST API written in TypeScript, running on **Bun** (primary) with a **Node.js** fallback via `@hono/node-server`. It uses **Prisma ORM** for PostgreSQL access, **Zod** for request validation, and **JWT** for authentication. The server is defined in `apps/backend/src/index.ts` and listens on port 3000 by default.
 
 The API serves 7 route groups mounted under `/api/` plus a health check endpoint at `/health`.
 
