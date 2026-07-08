@@ -28,7 +28,7 @@ Adults (18+) who:
 | Platform | Minimum Version | Status |
 |----------|----------------|--------|
 | iOS | 16+ | IMPLEMENTED |
-| Android | API 21+ | IMPLEMENTED |
+| Android | TBD | IMPLEMENTED |
 | watchOS | 7+ (Apple Watch Series 4+) | PLANNED |
 | iOS Widgets | iOS 16+ (interactive: iOS 17+) | IMPLEMENTED |
 
@@ -185,7 +185,7 @@ Completions are tracked per period. A quest with `maxCompletionsPerPeriod: 2` (e
 
 ### 3.3 Predefined Quest Library
 
-30 predefined quests across all five categories. All are `isDefault: true` and `isCustom: false`.
+28 predefined quests across all five categories. All are `isDefault: true` and `isCustom: false`.
 
 **Physical Health (7 quests)**
 
@@ -360,12 +360,12 @@ XP (experience points) are the primary currency of progression.
 | Level | XP Required | Cumulative XP |
 |-------|-------------|--------------|
 | 1 | 100 | 0 |
-| 2 | 115 | 100 |
-| 5 | 152 | 549 |
-| 10 | 228 | 1,350 |
-| 20 | 614 | 4,472 |
-| 50 | 8,083 | 52,185 |
-| 100 | 267,863 | 1,943,899 |
+| 2 | 114 | 100 |
+| 5 | 174 | 498 |
+| 10 | 351 | 1,675 |
+| 20 | 1,423 | 8,813 |
+| 50 | 94,231 | 627,518 |
+| 100 | 102,114,213 | 680,760,705 |
 
 **XP Sources:**
 - Quest completion: `baseXP` (1-10) per quest
@@ -410,7 +410,7 @@ The `getLevelTitle()` function returns the highest title the user has earned (a 
 
 **Status: IMPLEMENTED**
 
-20 predefined badges across four types, with four rarity tiers.
+16 predefined badges across four types, with four rarity tiers.
 
 **Badge Types:**
 
