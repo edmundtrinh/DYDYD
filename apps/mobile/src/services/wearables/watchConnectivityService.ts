@@ -221,6 +221,7 @@ class WatchConnectivityService {
     this.unsubscribeMessages = null;
     this.messageHandlers = [];
     this.isInitialized = false;
+    this.watchState = { isPaired: false, isReachable: false, isWatchAppInstalled: false };
   }
 }
 

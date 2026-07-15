@@ -209,16 +209,16 @@ PRD: `specs/phase-1/prd-history-logging.md` (APPROVED)
 
 Quality gates that block store submission but not personal use. Complete these before entering beta.
 
-| Task | Issue | Status | Owner |
-|------|-------|--------|-------|
-| API integration tests with Docker Postgres | #56 | PENDING | ARCHITECT |
-| E2E testing framework setup (Detox vs Maestro eval) | #61 | PENDING | QA |
-| CI coverage reporting + thresholds (70% backend, 50% mobile) | #64 | PENDING | ARCHITECT |
-| CNG migration — move Swift widget/watch to config plugins | #62 | PENDING | ARCHITECT / MOBILE |
-| Configure EAS Updates (OTA) for beta hot-fixes | — | PENDING | ARCHITECT |
-| Performance profiling baseline | — | PENDING | QA |
-| Security review | — | PENDING | QA |
-| Accessibility audit | — | PENDING | QA |
+| Task | Issue / PR | Status | Owner |
+|------|-----------|--------|-------|
+| API integration tests with Docker Postgres | #56 / #113 | IN REVIEW | ARCHITECT |
+| E2E testing framework setup (Maestro chosen over Detox) | #61 / #110 | IN REVIEW | QA |
+| CI coverage reporting + thresholds (70% backend, 50% mobile) | #64 | PENDING (land last) | ARCHITECT |
+| CNG migration — move Swift widget/watch to config plugins | #62 | PENDING (needs Xcode) | ARCHITECT / MOBILE |
+| Configure EAS Updates (OTA) for beta hot-fixes | #97 / #109 | IN REVIEW | MOBILE |
+| Performance profiling baseline | #98 / #111 | IN REVIEW | ARCHITECT |
+| Security review (12 findings, 3 critical fixes applied) | #99 / #112 | IN REVIEW | QA |
+| Accessibility audit (32 findings, fixes across 34 files) | #100 / #114 | IN REVIEW | MOBILE |
 
 ---
 
@@ -228,16 +228,16 @@ Quality gates that block store submission but not personal use. Complete these b
 
 Add AI-powered features that differentiate DYDYD from competitors. The LLM coach is the marquee feature — it turns natural language goals into actionable quests and adapts to the user's behavior patterns.
 
-| Task | Notes | Owner |
-|------|-------|-------|
-| LLM Coach: natural language quest creation | "I want to read more" → specific daily 15-min reading quest | ARCHITECT / MOBILE |
-| LLM Coach: completion pattern analysis | Suggest optimal times, detect burnout signals, adjust difficulty | ARCHITECT |
-| LLM Coach: proactive encouraging check-ins | Context-aware nudges, not generic reminders | MOBILE |
-| Timing pattern insights | US-2: "Completed 1h earlier than average" banners | ARCHITECT / MOBILE |
-| Time-of-day badges | US-4: Early Bird, Night Owl, Steady Eddie, Dawn Patrol | ARCHITECT / MOBILE |
-| Weekly digest enhancements | Week-over-week trends, personal records, AI-generated summaries | MOBILE |
-| Analytics dashboard | US-5: completion heat map, per-category trends, personal records | MOBILE |
-| Android home screen widgets | Jetpack Glance with Material You theming | MOBILE |
+| Task | Issue | Status | Owner |
+|------|-------|--------|-------|
+| LLM Coach: natural language quest creation | #101 | PENDING (needs provider decision) | ARCHITECT / MOBILE |
+| LLM Coach: completion pattern analysis | #102 | PENDING (needs provider decision) | ARCHITECT |
+| LLM Coach: proactive encouraging check-ins | #103 | PENDING (needs provider decision) | MOBILE |
+| Timing pattern insights | #104 | IN PROGRESS | ARCHITECT / MOBILE |
+| Time-of-day badges (Early Riser, Night Owl, Steady Eddie, Dawn Patrol) | #105 | IN PROGRESS | ARCHITECT / MOBILE |
+| Weekly digest enhancements | #106 | PENDING (blocked on PR #94 merge) | MOBILE |
+| Analytics dashboard | #107 | PENDING (blocked on PR #94 merge) | MOBILE |
+| Android home screen widgets (Jetpack Glance) | #108 | PENDING (blocked on PR #94 merge) | MOBILE |
 
 ---
 
@@ -272,7 +272,7 @@ Add AI-powered features that differentiate DYDYD from competitors. The LLM coach
 
 ---
 
-## Current State Summary (as of 2026-07-08)
+## Current State Summary (as of 2026-07-15)
 
 ### What exists
 
@@ -283,12 +283,25 @@ Add AI-powered features that differentiate DYDYD from competitors. The LLM coach
 | **Shared** | Types, constants, utils. 2 test files, 120/120 passing. |
 | **Infrastructure** | GitHub Actions CI workflow (test + lint + typecheck), EAS build configs (dev/preview/production), Sentry integration. 37+ merged PRs. |
 
-### Resolved since last update (2026-07-07 → 2026-07-08)
+### Resolved since last update (2026-07-08 → 2026-07-15)
+
+- Phase 4B Quality Gates — 6 of 8 tasks completed with PRs in review:
+  - PR #113: 37 API integration tests with Docker Postgres (#56)
+  - PR #110: Maestro E2E framework chosen and set up with 3 smoke tests (#61)
+  - PR #109: EAS Updates (OTA) configured with useOTAUpdates hook (#97)
+  - PR #111: Performance profiling with ALS-based per-request metrics (#98)
+  - PR #112: Security audit — 12 findings, 3 critical/high fixes applied (#99)
+  - PR #114: Accessibility audit — 32 findings, fixes across 34 files (#100)
+- PR #96: Phase 4A manual test plan with 22 new test cases
+- Issue #75 closed (silent failures already fixed via merged PR #74)
+- 12 new GitHub issues created (#97-#108) for Phase 4B and Phase 5
+- History logging confirmed complete on main (TimeBucket, /weekly-digest, /history)
+
+### Previously resolved (2026-07-07 → 2026-07-08)
 
 - Backend modernized: Express 4 -> Hono 4, express-validator -> Zod, Node.js -> Bun (PR #88 merged)
 - iOS interactive widgets shipped (PR #82 merged) — small, medium, large, StandBy Mode, Live Activities
-- Compassionate streak design implemented (rebasing for merge) — Streak Freezes, Comeback Quests, progressive onboarding
-- Mobile stack upgrade in progress (PR #89 pending) — Expo 50->53, RN 0.73->0.79, React 18->19, React Navigation 6->7
+- Compassionate streak design implemented (rebasing for merge)
 
 ### Previously resolved (2026-06-17 → 2026-07-07)
 
@@ -296,20 +309,17 @@ Add AI-powered features that differentiate DYDYD from competitors. The LLM coach
 - 7 critical backend bugs fixed (route validation, Prisma queries, streaks)
 - All 10 open PRs from Phase 3A merged or superseded
 - Milestones v0.2.0 and v0.3.0 closed
-- CLAUDE.md and SKILL.md updated with testing/SDLC guidance
 
 ### Remaining gaps
 
-- Mobile stack upgrade pending merge (RN 0.73->0.79, React Navigation 6->7 — PR #89)
+- Mobile stack upgrade pending merge (RN 0.73->0.79, React Navigation 6->7 — PR #94)
 - Compassionate streaks rebasing for merge
 - Apple Watch companion not started (Issue #81, Phase 4A M2)
 - Mobile test coverage incomplete (auth screens, HomeScreen, Redux slices — Phase 3B)
-- No E2E test framework installed (Detox vs Maestro decision deferred)
-- CNG migration not complete (android/ios gitignored but Swift code not in config plugins)
-- EAS Updates (OTA) not configured
-- History logging PRD approved but not implemented (Phase 4A M4)
-- No integration tests (blocked on Docker Postgres CI — Phase 4B)
-- No coverage thresholds in CI (Phase 4B)
+- CNG migration not complete (needs Xcode validation — #62)
+- No coverage thresholds in CI yet (#64 — landing last after new code has tests)
+- LLM Coach blocked on provider decision (#101-#103)
+- Mobile-heavy Phase 5 features blocked on PR #94 merge (#106-#108)
 
 ### Key decisions (2026-06-16)
 
@@ -347,4 +357,4 @@ The roadmap was resequenced based on a CTO-level review. Key strategic changes:
 
 ---
 
-*Last updated: 2026-07-08*
+*Last updated: 2026-07-15*
