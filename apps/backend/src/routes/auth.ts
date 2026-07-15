@@ -353,12 +353,15 @@ app.post('/forgot-password', validateBody(forgotPasswordSchema), async (c) => {
     },
   });
 
-  // In production, send resetToken via email. For now, return it.
-  const response: ApiResponse<{ message: string; resetToken: string }> = {
+  // In production, the reset token must be sent via email — never exposed in
+  // the HTTP response. In dev/test we return it directly for convenience.
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  const response: ApiResponse<{ message: string; resetToken?: string }> = {
     success: true,
     data: {
       message: 'If that email exists, a reset link has been sent.',
-      resetToken, // DEV ONLY -- remove when email service is wired up
+      ...(!isProduction ? { resetToken } : {}),
     },
   };
 
