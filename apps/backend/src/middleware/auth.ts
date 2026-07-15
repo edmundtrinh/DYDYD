@@ -16,7 +16,11 @@ export type AuthEnv = {
   };
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (
+  process.env.NODE_ENV === 'production'
+    ? (() => { throw new Error('JWT_SECRET must be set in production'); })()
+    : 'your-secret-key-change-in-production'
+);
 
 export const authenticate = async (c: Context, next: Next) => {
   const authHeader = c.req.header('authorization');
@@ -86,7 +90,11 @@ export const generateAccessToken = (userId: string, email: string): string => {
 };
 
 export const generateRefreshToken = (userId: string, email: string): string => {
-  const refreshSecret = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-change-in-production';
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || (
+    process.env.NODE_ENV === 'production'
+      ? (() => { throw new Error('JWT_REFRESH_SECRET must be set in production'); })()
+      : 'your-refresh-secret-change-in-production'
+  );
   return jwt.sign(
     { userId, email },
     refreshSecret,
@@ -95,6 +103,10 @@ export const generateRefreshToken = (userId: string, email: string): string => {
 };
 
 export const verifyRefreshToken = (token: string): JwtPayload => {
-  const refreshSecret = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-change-in-production';
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || (
+    process.env.NODE_ENV === 'production'
+      ? (() => { throw new Error('JWT_REFRESH_SECRET must be set in production'); })()
+      : 'your-refresh-secret-change-in-production'
+  );
   return jwt.verify(token, refreshSecret) as JwtPayload;
 };
