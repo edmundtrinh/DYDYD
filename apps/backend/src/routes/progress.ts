@@ -12,6 +12,9 @@ import {
   DailyProgress,
   WeeklyProgress,
   QuestCategory,
+  TimeBucket,
+  TimingInsights,
+  QuestTimingAverage,
 } from '@dydyd/shared';
 
 type Env = {
@@ -487,6 +490,168 @@ app.get(
     };
 
     return c.json(response);
+  }
+);
+
+/**
+ * GET /api/progress/timing-insights
+ * Get timing pattern insights for the authenticated user
+ */
+app.get(
+  '/timing-insights',
+  authenticate,
+  async (c) => {
+    const userId = c.get('userId');
+
+    // Fetch all completions with timeBucket data (last 90 days for meaningful patterns)
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const completions = await prisma.questCompletion.findMany({
+      where: {
+        userQuest: { userId },
+        completedAt: { gte: ninetyDaysAgo },
+        timeBucket: { not: null },
+      },
+      select: {
+        completedAt: true,
+        timeBucket: true,
+        userQuest: {
+          select: {
+            questId: true,
+            quest: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { completedAt: 'desc' },
+    });
+
+    if (completions.length === 0) {
+      const emptyInsights: TimingInsights = {
+        bucketDistribution: {},
+        mostProductiveBucket: null,
+        currentBucketStreak: { bucket: null, days: 0 },
+        averageCompletionHour: null,
+        averageCompletionHourByQuest: [],
+        recentCompletionComparison: null,
+      };
+      return c.json({ success: true, data: emptyInsights } as ApiResponse<TimingInsights>);
+    }
+
+    // Bucket distribution: count per bucket
+    const bucketDistribution: Record<string, number> = {};
+    for (const c2 of completions) {
+      const bucket = c2.timeBucket!;
+      bucketDistribution[bucket] = (bucketDistribution[bucket] || 0) + 1;
+    }
+
+    // Most productive bucket
+    let mostProductiveBucket: string | null = null;
+    let maxCount = 0;
+    for (const [bucket, count] of Object.entries(bucketDistribution)) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostProductiveBucket = bucket;
+      }
+    }
+
+    // Global average completion hour
+    const totalHours = completions.reduce(
+      (sum: number, c2: { completedAt: Date }) =>
+        sum + c2.completedAt.getHours() + c2.completedAt.getMinutes() / 60,
+      0
+    );
+    const averageCompletionHour = Math.round((totalHours / completions.length) * 10) / 10;
+
+    // Per-quest average completion hour
+    const questHourAccum = new Map<string, { name: string; totalHours: number; count: number }>();
+    for (const c2 of completions) {
+      const qId = c2.userQuest.questId;
+      const qName = c2.userQuest.quest.name;
+      const hour = c2.completedAt.getHours() + c2.completedAt.getMinutes() / 60;
+      const existing = questHourAccum.get(qId);
+      if (existing) {
+        existing.totalHours += hour;
+        existing.count += 1;
+      } else {
+        questHourAccum.set(qId, { name: qName, totalHours: hour, count: 1 });
+      }
+    }
+    const averageCompletionHourByQuest: QuestTimingAverage[] = [...questHourAccum.entries()]
+      .map(([questId, data]) => ({
+        questId,
+        questName: data.name,
+        averageHour: Math.round((data.totalHours / data.count) * 10) / 10,
+        completionCount: data.count,
+      }))
+      .sort((a, b) => b.completionCount - a.completionCount);
+
+    // Recent completion comparison: compare to the same quest's average, not global
+    let recentCompletionComparison: string | null = null;
+    if (completions.length > 1) {
+      const mostRecent = completions[0];
+      const recentHour = mostRecent.completedAt.getHours() + mostRecent.completedAt.getMinutes() / 60;
+      const questAvg = questHourAccum.get(mostRecent.userQuest.questId);
+      // Compare against this quest's average if it has more than 1 completion; otherwise use global
+      const comparisonAvg = (questAvg && questAvg.count > 1)
+        ? questAvg.totalHours / questAvg.count
+        : averageCompletionHour;
+      const diffHours = Math.round((recentHour - comparisonAvg) * 10) / 10;
+
+      if (Math.abs(diffHours) < 0.5) {
+        recentCompletionComparison = 'About the same as your average';
+      } else if (diffHours < 0) {
+        recentCompletionComparison = `${Math.abs(diffHours).toFixed(1)}h earlier than average`;
+      } else {
+        recentCompletionComparison = `${diffHours.toFixed(1)}h later than average`;
+      }
+    }
+
+    // Current bucket streak: consecutive days with completions in the same bucket
+    const dayBuckets = new Map<string, Set<string>>();
+    for (const c2 of completions) {
+      const d = c2.completedAt;
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!dayBuckets.has(key)) {
+        dayBuckets.set(key, new Set());
+      }
+      dayBuckets.get(key)!.add(c2.timeBucket!);
+    }
+
+    // Convert to sorted array of { date, buckets }
+    const sortedDays = [...dayBuckets.entries()]
+      .map(([key, buckets]) => {
+        const [y, m, d] = key.split('-').map(Number);
+        return { date: new Date(y, m, d, 0, 0, 0), buckets };
+      })
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    let currentBucketStreak = { bucket: null as string | null, days: 0 };
+    if (sortedDays.length > 0 && sortedDays[0].buckets.size === 1) {
+      const streakBucket = [...sortedDays[0].buckets][0];
+      let streakDays = 1;
+
+      for (let i = 1; i < sortedDays.length; i++) {
+        const diffMs = sortedDays[i - 1].date.getTime() - sortedDays[i].date.getTime();
+        const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+        if (diffDays !== 1) break;
+        if (sortedDays[i].buckets.size !== 1 || !sortedDays[i].buckets.has(streakBucket)) break;
+        streakDays++;
+      }
+
+      currentBucketStreak = { bucket: streakBucket, days: streakDays };
+    }
+
+    const insights: TimingInsights = {
+      bucketDistribution,
+      mostProductiveBucket,
+      currentBucketStreak,
+      averageCompletionHour,
+      averageCompletionHourByQuest,
+      recentCompletionComparison,
+    };
+
+    return c.json({ success: true, data: insights } as ApiResponse<TimingInsights>);
   }
 );
 

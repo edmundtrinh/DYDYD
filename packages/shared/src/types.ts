@@ -397,6 +397,27 @@ export interface WatchQuest {
   maxCompletions: number;
 }
 
+// -------------------- Timing Insights Types --------------------
+
+export interface QuestTimingAverage {
+  questId: string;
+  questName: string;
+  averageHour: number;
+  completionCount: number;
+}
+
+export interface TimingInsights {
+  bucketDistribution: Record<string, number>;
+  mostProductiveBucket: string | null;
+  currentBucketStreak: {
+    bucket: string | null;
+    days: number;
+  };
+  averageCompletionHour: number | null;
+  averageCompletionHourByQuest: QuestTimingAverage[];
+  recentCompletionComparison: string | null;
+}
+
 // -------------------- Utility Types --------------------
 
 export type DeepPartial<T> = {
