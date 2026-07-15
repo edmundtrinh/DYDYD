@@ -15,6 +15,7 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { useHealthSync } from './src/hooks/useHealthSync';
 import { useWatchConnectivity } from './src/hooks/useWatchConnectivity';
+import { useOTAUpdates } from './src/hooks/useOTAUpdates';
 import { LoadingScreen } from './src/components/LoadingScreen';
 
 // Ignore specific warnings in development
@@ -28,6 +29,9 @@ const AppContent: React.FC = () => {
   
   // Initialize watch connectivity
   const { initializeWatch } = useWatchConnectivity();
+
+  // Check for OTA updates (no-op in dev mode)
+  useOTAUpdates();
 
   useEffect(() => {
     // Initialize integrations

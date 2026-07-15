@@ -67,6 +67,18 @@ jest.mock('react-native-vector-icons/MaterialCommunityIcons', () => 'Icon');
 jest.mock('react-native-vector-icons/Ionicons', () => 'Icon');
 jest.mock('react-native-vector-icons/FontAwesome', () => 'Icon');
 
+// Mock expo-updates (virtual: true since native module is unavailable in test)
+jest.mock('expo-updates', () => ({
+  isEnabled: false,
+  checkForUpdateAsync: jest.fn().mockResolvedValue({ isAvailable: false }),
+  fetchUpdateAsync: jest.fn().mockResolvedValue({ isNew: false }),
+  reloadAsync: jest.fn().mockResolvedValue(undefined),
+  channel: null,
+  runtimeVersion: '1.0.0',
+  updateId: null,
+  isEmbeddedLaunch: true,
+}), { virtual: true });
+
 // Mock expo-notifications (virtual: true since package may not be installed)
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
