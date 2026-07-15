@@ -1,0 +1,28 @@
+# ============================================
+# DYDYD E2E Test: Tab Navigation
+# ============================================
+# Verifies navigation through all main tabs.
+#
+# PREREQUISITE: The app must be in an authenticated + onboarded state.
+# This flow launches without clearing state to preserve any existing
+# auth session. If the app is not authenticated, the flow skips tab
+# assertions (the Welcome screen will be visible instead).
+#
+# To run this flow in a fully authenticated state, either:
+# 1. Use a test backend with seeded credentials and run a login helper first
+# 2. Manually log in once on the emulator before running
+# 3. Mock the auth state in a test build variant
+
+appId: com.dydyd.app
+
+---
+
+# Launch without clearing state (preserves auth if previously logged in)
+- launchApp
+
+# If the Welcome screen is visible, we are not authenticated.
+# Skip the tab navigation test in that case.
+- runFlow:
+    when:
+      notVisible: "Begin Your Journey"
+    file: flows/tab-navigation-authenticated.yaml

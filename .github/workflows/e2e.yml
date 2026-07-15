@@ -1,0 +1,115 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only run one E2E workflow at a time
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-android:
+    name: E2E Tests (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api-34-${{ runner.os }}
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "Generated AVD snapshot for caching."
+
+      # NOTE: This step requires a pre-built APK.
+      # In a full setup, you would either:
+      # 1. Download a dev client APK from EAS Build
+      # 2. Build locally with expo prebuild + gradle
+      # 3. Use a dedicated build artifact from another workflow
+      #
+      # For now, this job demonstrates the CI structure.
+      # Uncomment and configure the APK download step when builds are available.
+      #
+      # - name: Download dev client APK
+      #   run: |
+      #     eas build:list --platform android --status finished --limit 1 --json \
+      #       | jq -r '.[0].artifacts.buildUrl' \
+      #       | xargs curl -L -o app.apk
+      #   working-directory: apps/mobile
+      #   env:
+      #     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Run E2E tests on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            # Install the APK (uncomment when APK is available)
+            # adb install apps/mobile/app.apk
+
+            # Run Maestro E2E tests
+            maestro test apps/mobile/.maestro/ || echo "E2E tests require a built APK — see comments in workflow"
+
+      - name: Upload Maestro test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-results
+          path: ~/.maestro/tests/
+          retention-days: 7

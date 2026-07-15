@@ -1,0 +1,22 @@
+# ============================================
+# DYDYD E2E Test: App Launch
+# ============================================
+# Verifies the app launches and displays the correct initial screen.
+# When unauthenticated, the user should see the Welcome screen
+# (part of the Auth flow) with the DYDYD branding and action buttons.
+
+appId: com.dydyd.app
+
+---
+
+# Launch the app fresh (clears state)
+- clearState
+- launchApp
+
+# Verify the Welcome screen is displayed
+- assertVisible: "DYDYD"
+- assertVisible: "Did You Do Your Dailies?"
+- assertVisible:
+    text: "Turn daily habits into quests."
+- assertVisible: "Begin Your Journey"
+- assertVisible: "I already have an account"
