@@ -114,6 +114,10 @@ export const CategoryPriorityScreen: React.FC = () => {
                   moveItem(idx, idx - 1);
                 }
               }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected }}
+              accessibilityLabel={`${cat.label}${selected ? `, priority ${idx + 1}` : ''}`}
+              accessibilityHint={selected ? 'Long press to move up in priority' : 'Tap to select this category'}
               style={[
                 styles.card,
                 {
@@ -156,6 +160,8 @@ export const CategoryPriorityScreen: React.FC = () => {
                       borderRadius: radii.pill,
                     },
                   ]}
+                  accessible={false}
+                  importantForAccessibility="no-hide-descendants"
                 >
                   <Text style={styles.rankText}>#{idx + 1}</Text>
                 </View>
@@ -168,6 +174,7 @@ export const CategoryPriorityScreen: React.FC = () => {
                       borderRadius: radii.pill,
                     },
                   ]}
+                  accessible={false}
                 />
               )}
             </TouchableOpacity>

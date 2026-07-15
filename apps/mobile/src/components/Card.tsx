@@ -35,6 +35,7 @@ export const Card: React.FC<CardProps> = ({ children, header, style }) => {
               marginBottom: spacing.sm,
             },
           ]}
+          accessibilityRole="header"
         >
           {header}
         </Text>

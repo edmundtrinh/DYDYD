@@ -132,7 +132,7 @@ const QuestsScreen: React.FC = () => {
       {/* Header */}
       <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
         <Text style={styles.headerTitle}>Quest Library</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddCustomQuest}>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddCustomQuest} accessibilityRole="button" accessibilityLabel="Create custom quest">
           <Text style={styles.addButtonText}>+ Custom</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -148,6 +148,7 @@ const QuestsScreen: React.FC = () => {
           autoCorrect={false}
           clearButtonMode="while-editing"
           testID="quest-search-input"
+          accessibilityLabel="Search quests"
         />
         {searchTerm.length > 0 && (
           <TouchableOpacity
@@ -219,7 +220,7 @@ const QuestsScreen: React.FC = () => {
               style={styles.categorySection}
             >
               <View style={styles.categoryHeader}>
-                <Text style={styles.categoryIcon}>
+                <Text style={styles.categoryIcon} accessible={false}>
                   {CATEGORY_DATA[category as QuestCategory].icon}
                 </Text>
                 <Text style={styles.categoryName}>
@@ -294,12 +295,18 @@ const FilterTab: React.FC<FilterTabProps> = ({ label, isActive, onPress, count, 
     scale.value = withSpring(1);
   };
 
+  const accessibleLabel = count !== undefined ? `${label}, ${count} quests` : label;
+
   return (
     <Animated.View style={animatedStyle}>
       <TouchableOpacity
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isActive }}
+        accessibilityLabel={accessibleLabel}
+        hitSlop={{ top: 6, bottom: 6 }}
         style={[
           styles.filterTab,
           isActive && styles.filterTabActive,
@@ -371,13 +378,15 @@ const QuestLibraryCard: React.FC<QuestLibraryCardProps> = ({
         onPressOut={handlePressOut}
         style={styles.questCard}
         activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={`${quest.name}, ${categoryData.name}, ${quest.baseXP} XP, ${isActive ? 'active' : 'inactive'}`}
       >
         {/* Left color indicator */}
         <View style={[styles.questColorBar, { backgroundColor: categoryData.color }]} />
 
         {/* Quest icon */}
-        <View style={[styles.questIcon, { backgroundColor: categoryData.color + '20' }]}>
-          <Text style={styles.questIconText}>{categoryData.icon}</Text>
+        <View style={[styles.questIcon, { backgroundColor: categoryData.color + '20' }]} accessible={false}>
+          <Text style={styles.questIconText} accessible={false}>{categoryData.icon}</Text>
         </View>
 
         {/* Quest info */}
@@ -418,6 +427,9 @@ const QuestLibraryCard: React.FC<QuestLibraryCardProps> = ({
             styles.actionButton,
             isActive ? styles.actionButtonActive : styles.actionButtonInactive,
           ]}
+          accessibilityRole="button"
+          accessibilityLabel={isActive ? 'Deactivate quest' : 'Activate quest'}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={[
             styles.actionButtonText,
@@ -460,7 +472,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ filter, onAddQuest }) => {
       <Text style={styles.emptyIcon}>{icon}</Text>
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptySubtitle}>{subtitle}</Text>
-      <TouchableOpacity style={styles.emptyButton} onPress={onAddQuest}>
+      <TouchableOpacity style={styles.emptyButton} onPress={onAddQuest} accessibilityRole="button">
         <Text style={styles.emptyButtonText}>Create Custom Quest</Text>
       </TouchableOpacity>
     </View>

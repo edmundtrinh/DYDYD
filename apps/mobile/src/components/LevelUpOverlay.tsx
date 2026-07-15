@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, AccessibilityInfo } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { getLevelTitle } from '@dydyd/shared';
 import { useTheme } from '../theme/ThemeProvider';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 interface LevelUpOverlayProps {
   visible: boolean;
@@ -26,6 +27,7 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({
   onDismiss,
 }) => {
   const { colors, typography, spacing } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const overlayOpacity = useSharedValue(0);
   const levelScale = useSharedValue(0);
@@ -47,30 +49,41 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({
       return;
     }
 
-    overlayOpacity.value = withSequence(
-      withTiming(1, { duration: 300 }),
-      withDelay(ANIMATION_DURATION - 600, withTiming(0, { duration: 300 })),
-    );
+    if (reduceMotion) {
+      overlayOpacity.value = 1;
+      levelScale.value = 1;
+      sparkleOpacity.value = 1;
+      titleOpacity.value = 1;
+      titleTranslateY.value = 0;
+    } else {
+      overlayOpacity.value = withSequence(
+        withTiming(1, { duration: 300 }),
+        withDelay(ANIMATION_DURATION - 600, withTiming(0, { duration: 300 })),
+      );
 
-    levelScale.value = withSequence(
-      withDelay(200, withSpring(1.4, { damping: 5, stiffness: 120 })),
-      withSpring(1, { damping: 8 }),
-    );
+      levelScale.value = withSequence(
+        withDelay(200, withSpring(1.4, { damping: 5, stiffness: 120 })),
+        withSpring(1, { damping: 8 }),
+      );
 
-    sparkleOpacity.value = withSequence(
-      withDelay(300, withTiming(1, { duration: 300 })),
-      withDelay(ANIMATION_DURATION - 900, withTiming(0, { duration: 300 })),
-    );
+      sparkleOpacity.value = withSequence(
+        withDelay(300, withTiming(1, { duration: 300 })),
+        withDelay(ANIMATION_DURATION - 900, withTiming(0, { duration: 300 })),
+      );
 
-    titleOpacity.value = withDelay(600, withTiming(1, { duration: 300 }));
-    titleTranslateY.value = withDelay(600, withSpring(0, { damping: 12 }));
+      titleOpacity.value = withDelay(600, withTiming(1, { duration: 300 }));
+      titleTranslateY.value = withDelay(600, withSpring(0, { damping: 12 }));
+    }
+
+    // Announce for screen readers
+    AccessibilityInfo.announceForAccessibility(`Level up! You are now level ${newLevel}, ${getLevelTitle(newLevel)}`);
 
     const timer = setTimeout(() => {
       runOnJS(dismiss)();
     }, ANIMATION_DURATION);
 
     return () => clearTimeout(timer);
-  }, [visible, overlayOpacity, levelScale, titleOpacity, titleTranslateY, sparkleOpacity, dismiss]);
+  }, [visible, reduceMotion, newLevel, overlayOpacity, levelScale, titleOpacity, titleTranslateY, sparkleOpacity, dismiss]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
@@ -99,6 +112,8 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({
         style={styles.dismissArea}
         onPress={dismiss}
         activeOpacity={1}
+        accessibilityRole="button"
+        accessibilityLabel={`Level up! Level ${newLevel}, ${levelTitle}. Tap to dismiss`}
       >
         <Animated.View style={sparkleStyle}>
           <Text style={styles.sparkles}>{'\u{2728}'}</Text>

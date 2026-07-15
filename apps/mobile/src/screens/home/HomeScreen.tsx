@@ -26,6 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppDispatch, RootState } from '../../store';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { fetchUserQuests, completeQuest, selectDailyQuests, selectCompletedQuestIds } from '../../store/slices/questsSlice';
 import { fetchUserStats, selectUserStats, checkBadges } from '../../store/slices/progressSlice';
 import { selectProfile, selectCategoryPriorities } from '../../store/slices/userSlice';
@@ -61,21 +62,33 @@ interface StatCardProps {
 
 // Progress Ring Component
 const ProgressRing: React.FC<ProgressRingProps> = ({ progress, size, strokeWidth, color }) => {
+  const reduceMotion = useReducedMotion();
   const animatedProgress = useSharedValue(0);
-  
+
   useEffect(() => {
-    animatedProgress.value = withSpring(progress, { damping: 15 });
-  }, [progress]);
-  
+    if (reduceMotion) {
+      animatedProgress.value = progress;
+    } else {
+      animatedProgress.value = withSpring(progress, { damping: 15 });
+    }
+  }, [progress, reduceMotion]);
+
   const circumference = 2 * Math.PI * ((size - strokeWidth) / 2);
-  
+  const percentComplete = Math.round(progress * 100);
+
   return (
-    <View style={{ width: size, height: size }}>
+    <View
+      style={{ width: size, height: size }}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Daily progress: ${percentComplete}% complete`}
+      accessibilityValue={{ min: 0, max: 100, now: percentComplete }}
+    >
       {/* Background circle */}
       <View style={[styles.ringBackground, { width: size, height: size, borderRadius: size / 2, borderWidth: strokeWidth }]} />
       {/* Progress indicator (simplified - actual implementation would use SVG) */}
       <View style={[styles.ringProgress, { width: size, height: size }]}>
-        <Text style={styles.ringText}>{Math.round(progress * 100)}%</Text>
+        <Text style={styles.ringText} accessible={false}>{percentComplete}%</Text>
       </View>
     </View>
   );
@@ -83,74 +96,86 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ progress, size, strokeWidth
 
 // Quest Card Component
 const QuestCard: React.FC<QuestCardProps> = ({ quest, index, onComplete }) => {
+  const reduceMotion = useReducedMotion();
   const scaleValue = useSharedValue(1);
-  
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleValue.value }],
   }));
-  
+
   const handlePress = useCallback(() => {
-    scaleValue.value = withSpring(0.95, {}, () => {
-      scaleValue.value = withSpring(1);
-    });
+    if (!reduceMotion) {
+      scaleValue.value = withSpring(0.95, {}, () => {
+        scaleValue.value = withSpring(1);
+      });
+    }
     onComplete(quest.id);
-  }, [quest.id, onComplete]);
-  
+  }, [quest.id, onComplete, reduceMotion]);
+
   const category = CATEGORY_METADATA[quest.quest?.category as QuestCategory] || CATEGORY_METADATA[QuestCategory.PHYSICAL_HEALTH];
-  const progress = quest.quest?.targetValue > 1 
-    ? (quest.currentValue || 0) / quest.quest.targetValue 
+  const progress = quest.quest?.targetValue > 1
+    ? (quest.currentValue || 0) / quest.quest.targetValue
     : quest.completedToday ? 1 : 0;
-  
+  const questName = quest.quest?.name || 'Quest';
+  const questXP = quest.quest?.baseXP || 0;
+  const questLabel = `${questName}, ${category.name}, ${questXP} XP${quest.completedToday ? ', completed' : ''}`;
+
+  const enteringAnimation = reduceMotion ? undefined : FadeInRight.delay(index * 100).springify();
+
   return (
-    <Animated.View 
-      entering={FadeInRight.delay(index * 100).springify()}
+    <Animated.View
+      entering={enteringAnimation}
       style={animatedStyle}
     >
       <Pressable
         onPress={handlePress}
         disabled={quest.completedToday}
+        accessibilityRole="button"
+        accessibilityLabel={questLabel}
+        accessibilityState={{ disabled: quest.completedToday }}
+        accessibilityHint={quest.completedToday ? undefined : 'Tap to complete this quest'}
         style={({ pressed }) => [
           styles.questCard,
           quest.completedToday && styles.questCardCompleted,
           pressed && styles.questCardPressed,
         ]}
       >
-        <View style={[styles.questIcon, { backgroundColor: category.color + '20' }]}>
-          <Text style={styles.questIconText}>{category.icon}</Text>
+        <View style={[styles.questIcon, { backgroundColor: category.color + '20' }]} accessible={false}>
+          <Text style={styles.questIconText} accessible={false}>{category.icon}</Text>
         </View>
-        
+
         <View style={styles.questContent}>
-          <Text 
+          <Text
             style={[styles.questName, quest.completedToday && styles.questNameCompleted]}
             numberOfLines={1}
           >
-            {quest.quest?.name || 'Quest'}
+            {questName}
           </Text>
-          
+
           {quest.quest?.targetValue > 1 && (
             <View style={styles.questProgressBar}>
-              <View 
+              <View
                 style={[
-                  styles.questProgressFill, 
+                  styles.questProgressFill,
                   { width: `${progress * 100}%`, backgroundColor: category.color }
-                ]} 
+                ]}
               />
             </View>
           )}
-          
+
           <Text style={styles.questCategory}>{category.name}</Text>
         </View>
-        
+
         <View style={styles.questXP}>
           <Text style={[styles.questXPValue, quest.completedToday && styles.questXPCompleted]}>
-            +{quest.quest?.baseXP || 0}
+            +{questXP}
           </Text>
           <Text style={styles.questXPLabel}>XP</Text>
         </View>
-        
+
         {quest.completedToday && (
-          <View style={styles.questCheckmark}>
-            <Text style={styles.questCheckmarkText}>✓</Text>
+          <View style={styles.questCheckmark} accessible={false}>
+            <Text style={styles.questCheckmarkText}>&#x2713;</Text>
           </View>
         )}
       </Pressable>
@@ -159,14 +184,25 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, index, onComplete }) => {
 };
 
 // Stat Card Component
-const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, color }) => (
-  <Animated.View entering={FadeInDown.springify()} style={[styles.statCard, { borderLeftColor: color }]}>
-    <Text style={styles.statIcon}>{icon}</Text>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statTitle}>{title}</Text>
-    {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
-  </Animated.View>
-);
+const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, color }) => {
+  const reduceMotion = useReducedMotion();
+  const enteringAnimation = reduceMotion ? undefined : FadeInDown.springify();
+  const accessibleDescription = `${title}: ${value}${subtitle ? ` ${subtitle}` : ''}`;
+
+  return (
+    <Animated.View
+      entering={enteringAnimation}
+      style={[styles.statCard, { borderLeftColor: color }]}
+      accessible
+      accessibilityLabel={accessibleDescription}
+    >
+      <Text style={styles.statIcon} accessible={false}>{icon}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statTitle}>{title}</Text>
+      {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
+    </Animated.View>
+  );
+};
 
 // Main Home Screen
 export const HomeScreen: React.FC = () => {
@@ -311,17 +347,19 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.date}>{formatDate(new Date())}</Text>
           </View>
           
-          <Pressable 
+          <Pressable
             style={styles.levelBadge}
             onPress={() => navigation.navigate('Profile' as never)}
+            accessibilityRole="button"
+            accessibilityLabel={`Level ${level}. View profile`}
           >
-            <Text style={styles.levelIcon}>🔥</Text>
+            <Text style={styles.levelIcon} accessible={false}>&#x1F525;</Text>
             <Text style={styles.levelText}>Lv {level}</Text>
           </Pressable>
         </View>
         
         {/* Progress Overview */}
-        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.progressCard}>
+        <Animated.View style={styles.progressCard}>
           <View style={styles.progressLeft}>
             <ProgressRing 
               progress={completionProgress} 
@@ -372,8 +410,8 @@ export const HomeScreen: React.FC = () => {
         
         {/* Health Data (if available) */}
         {healthData && (healthData.steps || healthData.sleep_hours) && (
-          <View style={styles.healthSection}>
-            <Text style={styles.sectionTitle}>📱 Today's Activity</Text>
+          <View style={styles.healthSection} accessibilityLabel="Today's activity">
+            <Text style={styles.sectionTitle} accessibilityRole="header">&#x1F4F1; Today's Activity</Text>
             <View style={styles.healthRow}>
               {healthData.steps && (
                 <View style={styles.healthItem}>
@@ -401,8 +439,12 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.questsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Today's Quests</Text>
-            <Pressable onPress={() => navigation.navigate('Quests' as never)}>
-              <Text style={styles.seeAllText}>See All →</Text>
+            <Pressable
+              onPress={() => navigation.navigate('Quests' as never)}
+              accessibilityRole="link"
+              accessibilityLabel="See all quests"
+            >
+              <Text style={styles.seeAllText}>See All &#x2192;</Text>
             </Pressable>
           </View>
           
@@ -411,9 +453,11 @@ export const HomeScreen: React.FC = () => {
               <Text style={styles.emptyIcon}>🎯</Text>
               <Text style={styles.emptyTitle}>No quests yet!</Text>
               <Text style={styles.emptySubtitle}>Add some quests to start your journey</Text>
-              <Pressable 
+              <Pressable
                 style={styles.addQuestButton}
                 onPress={() => navigation.navigate('Quests' as never)}
+                accessibilityRole="button"
+                accessibilityLabel="Add quests"
               >
                 <Text style={styles.addQuestButtonText}>+ Add Quests</Text>
               </Pressable>
@@ -588,7 +632,7 @@ const styles = StyleSheet.create({
   },
   statSubtitle: {
     fontSize: 10,
-    color: '#666666',
+    color: '#9E9EB8',
   },
   healthSection: {
     backgroundColor: '#1A1A2E',

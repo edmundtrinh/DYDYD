@@ -16,15 +16,24 @@ export const HealthIntegrationsScreen: React.FC = () => {
         Connect health sources to automatically complete health-linked quests.
       </Text>
       {integrations.filter(i => i.available).map(integration => (
-        <View key={integration.name} style={styles.card}>
-          <Text style={styles.emoji}>{integration.emoji}</Text>
+        <View
+          key={integration.name}
+          style={styles.card}
+          accessible
+          accessibilityLabel={`${integration.name}, ${integration.connected ? 'connected' : 'not connected'}`}
+        >
+          <Text style={styles.emoji} accessible={false}>{integration.emoji}</Text>
           <View style={styles.cardText}>
             <Text style={styles.cardName}>{integration.name}</Text>
             <Text style={styles.cardStatus}>
               {integration.connected ? 'Connected' : 'Not connected'}
             </Text>
           </View>
-          <TouchableOpacity style={styles.connectButton}>
+          <TouchableOpacity
+            style={styles.connectButton}
+            accessibilityRole="button"
+            accessibilityLabel={`${integration.connected ? 'Disconnect' : 'Connect'} ${integration.name}`}
+          >
             <Text style={styles.connectText}>
               {integration.connected ? 'Disconnect' : 'Connect'}
             </Text>

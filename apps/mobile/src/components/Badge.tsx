@@ -54,6 +54,9 @@ export const Badge: React.FC<BadgeProps> = ({
   const borderColor = rarityColorMap[rarity] || colors.rarityCommon;
   const icon = BADGE_ICONS[iconName] || BADGE_ICONS.default;
 
+  const stateDescription = locked ? 'Locked' : 'Earned';
+  const badgeLabel = `${name}, ${rarity} badge, ${stateDescription}${earnedDate && !locked ? `, earned ${earnedDate}` : ''}`;
+
   return (
     <View
       style={[
@@ -66,6 +69,8 @@ export const Badge: React.FC<BadgeProps> = ({
           opacity: locked ? 0.4 : 1,
         },
       ]}
+      accessible
+      accessibilityLabel={badgeLabel}
     >
       <View
         style={[
@@ -75,8 +80,9 @@ export const Badge: React.FC<BadgeProps> = ({
             borderRadius: radii.pill,
           },
         ]}
+        accessible={false}
       >
-        <Text style={styles.iconText}>{locked ? '\u{1F512}' : icon}</Text>
+        <Text style={styles.iconText} accessible={false}>{locked ? '\u{1F512}' : icon}</Text>
       </View>
       <Text
         style={[

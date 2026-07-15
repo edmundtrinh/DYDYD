@@ -21,6 +21,8 @@ export const StatCard: React.FC<StatCardProps> = ({
 }) => {
   const { colors, radii, typography, spacing } = useTheme();
 
+  const accessibleDescription = `${label}: ${value}${sublabel ? `, ${sublabel}` : ''}`;
+
   return (
     <View
       style={[
@@ -34,8 +36,10 @@ export const StatCard: React.FC<StatCardProps> = ({
         },
         style,
       ]}
+      accessible
+      accessibilityLabel={accessibleDescription}
     >
-      <Text style={styles.icon}>{icon}</Text>
+      <Text style={styles.icon} accessible={false}>{icon}</Text>
       <Text
         style={[
           styles.value,

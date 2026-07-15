@@ -26,23 +26,32 @@ export const HealthPermissionsScreen: React.FC = () => {
       </View>
       <View style={styles.features}>
         <View style={styles.feature}>
-          <Text style={styles.featureEmoji}>🚶</Text>
+          <Text style={styles.featureEmoji} accessible={false}>🚶</Text>
           <Text style={styles.featureText}>Auto-track daily steps</Text>
         </View>
         <View style={styles.feature}>
-          <Text style={styles.featureEmoji}>😴</Text>
+          <Text style={styles.featureEmoji} accessible={false}>😴</Text>
           <Text style={styles.featureText}>Monitor sleep duration</Text>
         </View>
         <View style={styles.feature}>
-          <Text style={styles.featureEmoji}>🏋️</Text>
+          <Text style={styles.featureEmoji} accessible={false}>🏋️</Text>
           <Text style={styles.featureText}>Log exercise automatically</Text>
         </View>
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.button} onPress={handleAllow}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleAllow}
+          accessibilityRole="button"
+          accessibilityLabel={`Connect ${healthSource}`}
+        >
           <Text style={styles.buttonText}>Connect {healthSource}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('NotificationPermissions')}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('NotificationPermissions')}
+          accessibilityRole="button"
+          accessibilityLabel="Skip health permissions"
+        >
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </View>

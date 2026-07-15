@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, AccessibilityInfo } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,6 +10,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { useTheme } from '../theme/ThemeProvider';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { selectNewBadgeIds, selectEarnedBadges, clearNewBadges } from '../store/slices/progressSlice';
 import { PREDEFINED_BADGES } from '@dydyd/shared';
@@ -26,6 +27,7 @@ const RARITY_GLOW_COLORS: Record<string, string> = {
 export const BadgeEarnedModal: React.FC = () => {
   const dispatch = useAppDispatch();
   const { colors, typography, spacing, radii } = useTheme();
+  const reduceMotion = useReducedMotion();
   const newBadgeIds = useAppSelector(selectNewBadgeIds);
   const earnedBadges = useAppSelector(selectEarnedBadges);
 
@@ -51,19 +53,30 @@ export const BadgeEarnedModal: React.FC = () => {
   useEffect(() => {
     if (!currentBadgeId || !badgeDef) return;
 
-    overlayOpacity.value = withTiming(1, { duration: 300 });
-    badgeScale.value = withSequence(
-      withDelay(200, withSpring(1.3, { damping: 6, stiffness: 150 })),
-      withSpring(1, { damping: 10 }),
+    if (reduceMotion) {
+      overlayOpacity.value = 1;
+      badgeScale.value = 1;
+      glowOpacity.value = 1;
+    } else {
+      overlayOpacity.value = withTiming(1, { duration: 300 });
+      badgeScale.value = withSequence(
+        withDelay(200, withSpring(1.3, { damping: 6, stiffness: 150 })),
+        withSpring(1, { damping: 10 }),
+      );
+      glowOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
+    }
+
+    // Announce for screen readers
+    AccessibilityInfo.announceForAccessibility(
+      `Badge earned! ${badgeDef.name}, ${badgeDef.rarity || 'common'} rarity. ${badgeDef.description}`,
     );
-    glowOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
 
     const timer = setTimeout(() => {
       runOnJS(handleDismiss)();
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [currentBadgeId, badgeDef, overlayOpacity, badgeScale, glowOpacity, handleDismiss]);
+  }, [currentBadgeId, badgeDef, reduceMotion, overlayOpacity, badgeScale, glowOpacity, handleDismiss]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
@@ -95,6 +108,8 @@ export const BadgeEarnedModal: React.FC = () => {
         style={styles.dismissArea}
         onPress={handleDismiss}
         activeOpacity={1}
+        accessibilityRole="button"
+        accessibilityLabel={`Badge earned: ${badgeDef.name}, ${rarity} rarity. ${badgeDef.description}. Tap to dismiss`}
       >
         <Animated.View style={[styles.glowCircle, { shadowColor: glowColor }, glowStyle]} />
 

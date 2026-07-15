@@ -106,6 +106,8 @@ export const LoginScreen: React.FC = () => {
                 marginBottom: spacing.base,
               },
             ]}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
           >
             <Text style={{ color: colors.redBright, fontSize: typography.sizeBodySm }}>
               {serverError}
@@ -145,6 +147,8 @@ export const LoginScreen: React.FC = () => {
           <TouchableOpacity
             onPress={() => navigation.navigate('ForgotPassword')}
             style={{ alignSelf: 'flex-end' }}
+            accessibilityRole="link"
+            accessibilityLabel="Forgot password?"
           >
             <Text
               style={{
@@ -169,6 +173,8 @@ export const LoginScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.footer, { marginTop: spacing['2xl'] }]}
           onPress={() => navigation.navigate('Register')}
+          accessibilityRole="link"
+          accessibilityLabel="Don't have an account? Sign up"
         >
           <Text style={{ color: colors.textTertiary, fontSize: typography.sizeBodySm }}>
             {"Don't have an account? "}

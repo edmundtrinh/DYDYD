@@ -123,6 +123,9 @@ export const SelectQuestsScreen: React.FC = () => {
             <TouchableOpacity
               key={tab.id}
               onPress={() => setActiveFilter(tab.id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={tab.label}
               style={[
                 styles.filterTab,
                 {
@@ -174,6 +177,7 @@ export const SelectQuestsScreen: React.FC = () => {
                 textTransform: 'uppercase',
                 letterSpacing: 1,
               }}
+              accessibilityRole="header"
             >
               {section.title}
             </Text>
@@ -187,6 +191,9 @@ export const SelectQuestsScreen: React.FC = () => {
             <TouchableOpacity
               activeOpacity={0.75}
               onPress={() => toggle(item.name)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isSelected }}
+              accessibilityLabel={`${item.name}, ${item.frequency}, ${item.baseXP} XP`}
               style={[
                 styles.questCard,
                 {
@@ -235,6 +242,8 @@ export const SelectQuestsScreen: React.FC = () => {
                     borderRadius: radii.xs,
                   },
                 ]}
+                accessible={false}
+                importantForAccessibility="no-hide-descendants"
               >
                 {isSelected && <Text style={styles.checkText}>{'✓'}</Text>}
               </View>
