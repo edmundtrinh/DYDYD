@@ -62,6 +62,7 @@ temp/
 # Backend specific
 apps/backend/uploads/
 apps/backend/.env
+benchmark-results.json
 
 # Secrets
 *.pem

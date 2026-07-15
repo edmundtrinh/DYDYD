@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimit';
+import { performanceMiddleware } from './middleware/performance';
 import authRoutes from './routes/auth';
 import questRoutes from './routes/quests';
 import userRoutes from './routes/user';
@@ -38,6 +39,10 @@ app.use('*', compress());
 if (process.env.NODE_ENV !== 'test') {
   app.use('*', logger());
 }
+
+// Performance profiling (after logger, before routes)
+// Active only when ENABLE_PERF_LOGGING=true
+app.use('*', performanceMiddleware());
 
 // Global error handler
 app.onError((err, c) => {
