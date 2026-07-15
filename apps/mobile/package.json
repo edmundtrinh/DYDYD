@@ -13,7 +13,12 @@
     "eas:build:dev": "eas build --profile development --platform all",
     "eas:build:preview": "eas build --profile preview --platform all",
     "eas:build:ios": "eas build --profile preview --platform ios",
-    "eas:build:android": "eas build --profile preview --platform android"
+    "eas:build:android": "eas build --profile preview --platform android",
+    "e2e": "maestro test .maestro/",
+    "e2e:launch": "maestro test .maestro/01-app-launch.yaml",
+    "e2e:register": "maestro test .maestro/02-auth-register.yaml",
+    "e2e:navigation": "maestro test .maestro/03-tab-navigation.yaml",
+    "e2e:studio": "maestro studio"
   },
   "dependencies": {
     "@dydyd/shared": "workspace:*",

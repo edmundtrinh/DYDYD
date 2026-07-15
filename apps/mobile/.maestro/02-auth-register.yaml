@@ -1,0 +1,59 @@
+# ============================================
+# DYDYD E2E Test: Registration Flow
+# ============================================
+# Verifies the registration flow navigates correctly:
+# Welcome -> Register screen -> fill form -> submit.
+#
+# NOTE: This test validates the UI flow up to form submission.
+# Without a running backend, the registration API call will fail,
+# but we verify that the form interaction works correctly.
+# Full end-to-end auth testing requires a test backend instance.
+
+appId: com.dydyd.app
+
+---
+
+# Start fresh
+- clearState
+- launchApp
+
+# Verify we are on the Welcome screen
+- assertVisible: "DYDYD"
+
+# Navigate to Register screen
+- tapOn: "Begin Your Journey"
+
+# Verify we are on the Register screen
+- assertVisible: "Create your account"
+- assertVisible: "Begin your adventure"
+
+# Fill in the registration form
+- tapOn: "What should we call you?"
+- inputText: "Test Adventurer"
+
+- tapOn: "you@example.com"
+- inputText: "test@dydyd.dev"
+
+- tapOn: "At least 8 characters"
+- inputText: "Str0ng!Pass"
+
+# Scroll down to ensure confirm password field is visible
+- scrollUntilVisible:
+    element: "Re-enter your password"
+    direction: DOWN
+
+- tapOn: "Re-enter your password"
+- inputText: "Str0ng!Pass"
+
+# Verify the password strength indicator shows (password is strong)
+- assertVisible: "Strong"
+
+# Verify the submit button is available
+- assertVisible: "Create Account"
+
+# Tap Create Account (will fail without backend, but validates the flow)
+- tapOn: "Create Account"
+
+# We stay on the Register screen since no backend is running
+# Verify we have not crashed and the screen is still responsive
+- assertVisible: "Create your account"

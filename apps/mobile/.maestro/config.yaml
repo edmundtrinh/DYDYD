@@ -1,0 +1,3 @@
+# Maestro workspace configuration for DYDYD E2E tests
+# Flows are executed in lexicographic order (01-, 02-, 03- prefixes).
+# Run all: maestro test .maestro/

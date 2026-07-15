@@ -1,0 +1,28 @@
+# ============================================
+# DYDYD E2E Sub-flow: Authenticated Tab Navigation
+# ============================================
+# This sub-flow is called by 03-tab-navigation.yaml only when
+# the app is in an authenticated state (Welcome screen not visible).
+
+appId: com.dydyd.app
+
+---
+
+# Home tab should be the default landing after auth
+- assertVisible: "Today's Quests"
+
+# Navigate to Quests tab
+- tapOn: "Quests"
+- assertVisible: "My Quests"
+
+# Navigate to Progress tab
+- tapOn: "Progress"
+- assertVisible: "Progress"
+
+# Navigate to Profile tab
+- tapOn: "Profile"
+- assertVisible: "Profile"
+
+# Navigate back to Home tab to complete the loop
+- tapOn: "Home"
+- assertVisible: "Today's Quests"
