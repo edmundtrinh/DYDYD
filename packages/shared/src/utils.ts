@@ -343,3 +343,176 @@ export const getOnboardingQuestLimit = (activeDaysCount: number): number => {
   const unlocks = Math.floor(activeDaysCount / PROGRESSIVE_ONBOARDING.daysToUnlockMore);
   return PROGRESSIVE_ONBOARDING.initialQuestLimit + unlocks * PROGRESSIVE_ONBOARDING.maxQuestsPerUnlock;
 };
+
+// -------------------- Time-of-Day Badge Utilities --------------------
+
+/**
+ * Completion record with the fields needed for time-of-day badge evaluation.
+ */
+export interface TimeBadgeCompletion {
+  completedAt: Date;
+  timeBucket: string;
+}
+
+/**
+ * Group completions by calendar day (local time) and return a sorted array of
+ * { date (start-of-day), buckets (set of unique buckets that day) }.
+ */
+const groupCompletionsByDay = (
+  completions: TimeBadgeCompletion[]
+): Array<{ date: Date; buckets: Set<string> }> => {
+  const dayMap = new Map<string, { date: Date; buckets: Set<string> }>();
+
+  for (const c of completions) {
+    const d = new Date(c.completedAt);
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if (!dayMap.has(key)) {
+      const startOfDay = new Date(d);
+      startOfDay.setHours(0, 0, 0, 0);
+      dayMap.set(key, { date: startOfDay, buckets: new Set() });
+    }
+    dayMap.get(key)!.buckets.add(c.timeBucket);
+  }
+
+  return [...dayMap.values()].sort(
+    (a, b) => b.date.getTime() - a.date.getTime()
+  );
+};
+
+/**
+ * Count consecutive days (from most recent backward) where the predicate holds.
+ * Days must be adjacent calendar days with no gaps.
+ */
+const countConsecutiveDays = (
+  days: Array<{ date: Date; buckets: Set<string> }>,
+  predicate: (buckets: Set<string>) => boolean
+): number => {
+  if (days.length === 0) return 0;
+
+  let streak = 0;
+  for (let i = 0; i < days.length; i++) {
+    // Check adjacency: each day must be exactly 1 day after the next in the array
+    if (i > 0) {
+      const diffMs = days[i - 1].date.getTime() - days[i].date.getTime();
+      const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+      if (diffDays !== 1) break;
+    }
+
+    if (predicate(days[i].buckets)) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+};
+
+/**
+ * Early Riser: 5+ completions in EARLY_MORNING bucket on consecutive days.
+ * A day qualifies if it has at least one completion with timeBucket = EARLY_MORNING.
+ */
+export const checkEarlyRiserBadge = (completions: TimeBadgeCompletion[]): boolean => {
+  const earlyOnly = completions.filter(
+    (c) => c.timeBucket === TimeBucket.EARLY_MORNING
+  );
+  const days = groupCompletionsByDay(earlyOnly);
+  return countConsecutiveDays(days, () => true) >= 5;
+};
+
+/**
+ * Night Owl: 5+ completions in EVENING or NIGHT bucket on consecutive days.
+ * A day qualifies if it has at least one completion in EVENING or NIGHT.
+ */
+export const checkNightOwlBadge = (completions: TimeBadgeCompletion[]): boolean => {
+  const nightOnly = completions.filter(
+    (c) =>
+      c.timeBucket === TimeBucket.EVENING || c.timeBucket === TimeBucket.NIGHT
+  );
+  const days = groupCompletionsByDay(nightOnly);
+  return countConsecutiveDays(days, () => true) >= 5;
+};
+
+/**
+ * Steady Eddie: Same time bucket for 7+ consecutive days.
+ * A day qualifies if ALL completions that day fall in a single bucket.
+ * We check for any bucket that achieves a 7-day consecutive streak.
+ */
+export const checkSteadyEddieBadge = (completions: TimeBadgeCompletion[]): boolean => {
+  const days = groupCompletionsByDay(completions);
+  if (days.length < 7) return false;
+
+  // Try each bucket as the "steady" bucket
+  const allBuckets = [
+    TimeBucket.EARLY_MORNING,
+    TimeBucket.MORNING,
+    TimeBucket.AFTERNOON,
+    TimeBucket.EVENING,
+    TimeBucket.NIGHT,
+  ];
+
+  for (const bucket of allBuckets) {
+    // Filter to days that have at least one completion in this bucket
+    // AND no completions in any other bucket
+    const streak = countConsecutiveDays(
+      days,
+      (buckets) => buckets.size === 1 && buckets.has(bucket)
+    );
+    if (streak >= 7) return true;
+  }
+
+  return false;
+};
+
+/**
+ * Dawn Patrol: Complete all active daily quests before 9am for 5 consecutive days.
+ * Uses completedAt hour (local time), NOT timeBucket, since 9am falls within the
+ * MORNING bucket (7-12) and the bucket boundary doesn't match.
+ *
+ * @param completions - All completions (any time) for the user's daily quests
+ * @param activeDailyQuestCount - Number of currently active daily-frequency quests
+ */
+export const checkDawnPatrolBadge = (
+  completions: TimeBadgeCompletion[],
+  activeDailyQuestCount: number
+): boolean => {
+  if (activeDailyQuestCount <= 0) return false;
+
+  // Group all completions by day
+  const dayMap = new Map<string, { date: Date; before9amCount: number }>();
+
+  for (const c of completions) {
+    const d = new Date(c.completedAt);
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if (!dayMap.has(key)) {
+      const startOfDay = new Date(d);
+      startOfDay.setHours(0, 0, 0, 0);
+      dayMap.set(key, { date: startOfDay, before9amCount: 0 });
+    }
+    if (d.getHours() < 9) {
+      dayMap.get(key)!.before9amCount++;
+    }
+  }
+
+  const days = [...dayMap.values()].sort(
+    (a, b) => b.date.getTime() - a.date.getTime()
+  );
+
+  // Count consecutive days where before-9am completions >= active daily quest count
+  let streak = 0;
+  for (let i = 0; i < days.length; i++) {
+    if (i > 0) {
+      const diffMs = days[i - 1].date.getTime() - days[i].date.getTime();
+      const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+      if (diffDays !== 1) break;
+    }
+
+    if (days[i].before9amCount >= activeDailyQuestCount) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak >= 5;
+};

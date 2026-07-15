@@ -497,6 +497,135 @@ describe('GET /api/progress/weekly-digest', () => {
   });
 });
 
+describe('GET /api/progress/timing-insights', () => {
+  const QUEST_A_ID = '00000000-0000-4000-a000-000000000aaa';
+  const QUEST_B_ID = '00000000-0000-4000-a000-000000000bbb';
+
+  const makeCompletion = (
+    hour: number,
+    bucket: string,
+    questId: string,
+    questName: string,
+    dayOffset: number = 0
+  ) => {
+    const now = new Date();
+    return {
+      completedAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset, hour, 0),
+      timeBucket: bucket,
+      userQuest: { questId, quest: { name: questName } },
+    };
+  };
+
+  it('should return empty insights when no completions exist', async () => {
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([]);
+
+    const res = await app.request('/api/progress/timing-insights', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.data.bucketDistribution).toEqual({});
+    expect(body.data.mostProductiveBucket).toBeNull();
+    expect(body.data.averageCompletionHour).toBeNull();
+    expect(body.data.averageCompletionHourByQuest).toEqual([]);
+    expect(body.data.recentCompletionComparison).toBeNull();
+    expect(body.data.currentBucketStreak).toEqual({ bucket: null, days: 0 });
+  });
+
+  it('should return bucket distribution and most productive bucket', async () => {
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([
+      makeCompletion(9, 'morning', QUEST_A_ID, 'Morning Run', 0),
+      makeCompletion(10, 'morning', QUEST_A_ID, 'Morning Run', 0),
+      makeCompletion(14, 'afternoon', QUEST_B_ID, 'Study', 1),
+    ]);
+
+    const res = await app.request('/api/progress/timing-insights', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data.bucketDistribution.morning).toBe(2);
+    expect(body.data.bucketDistribution.afternoon).toBe(1);
+    expect(body.data.mostProductiveBucket).toBe('morning');
+  });
+
+  it('should calculate global and per-quest average completion hour', async () => {
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([
+      makeCompletion(8, 'morning', QUEST_A_ID, 'Morning Run', 0),
+      makeCompletion(10, 'morning', QUEST_A_ID, 'Morning Run', 1),
+      makeCompletion(14, 'afternoon', QUEST_B_ID, 'Study', 0),
+    ]);
+
+    const res = await app.request('/api/progress/timing-insights', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    // Global average: (8 + 10 + 14) / 3 ≈ 10.7
+    expect(body.data.averageCompletionHour).toBeCloseTo(10.7, 0);
+    // Per-quest averages
+    expect(body.data.averageCompletionHourByQuest).toHaveLength(2);
+    const runAvg = body.data.averageCompletionHourByQuest.find(
+      (q: any) => q.questId === QUEST_A_ID
+    );
+    expect(runAvg).toBeDefined();
+    expect(runAvg.questName).toBe('Morning Run');
+    expect(runAvg.averageHour).toBe(9); // (8+10)/2
+    expect(runAvg.completionCount).toBe(2);
+    const studyAvg = body.data.averageCompletionHourByQuest.find(
+      (q: any) => q.questId === QUEST_B_ID
+    );
+    expect(studyAvg).toBeDefined();
+    expect(studyAvg.averageHour).toBe(14);
+    expect(studyAvg.completionCount).toBe(1);
+  });
+
+  it('should compare recent completion against same quest average', async () => {
+    // Most recent: Morning Run at 6am. Morning Run average over 3 completions: (6+10+10)/3 ≈ 8.7
+    // So 6am is ~2.7h earlier than 8.7
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([
+      makeCompletion(6, 'early_morning', QUEST_A_ID, 'Morning Run', 0),
+      makeCompletion(10, 'morning', QUEST_A_ID, 'Morning Run', 1),
+      makeCompletion(10, 'morning', QUEST_A_ID, 'Morning Run', 2),
+      makeCompletion(14, 'afternoon', QUEST_B_ID, 'Study', 0),
+    ]);
+
+    const res = await app.request('/api/progress/timing-insights', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data.recentCompletionComparison).toContain('earlier than average');
+  });
+
+  it('should fall back to global average when quest has only 1 completion', async () => {
+    // Most recent: Study at 6am (only 1 Study completion). Global avg: (6+12)/2 = 9
+    // So 6am is 3h earlier than global 9
+    (prisma.questCompletion.findMany as jest.Mock).mockResolvedValue([
+      makeCompletion(6, 'early_morning', QUEST_B_ID, 'Study', 0),
+      makeCompletion(12, 'afternoon', QUEST_A_ID, 'Morning Run', 1),
+    ]);
+
+    const res = await app.request('/api/progress/timing-insights', {
+      headers: { Authorization: `Bearer ${validToken}` },
+    });
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(body.data.recentCompletionComparison).toContain('earlier than average');
+  });
+
+  it('should return 401 when not authenticated', async () => {
+    const res = await app.request('/api/progress/timing-insights');
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('GET /api/progress/history', () => {
   const QUEST_UUID = '00000000-0000-4000-a000-000000000020';
 

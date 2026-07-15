@@ -581,6 +581,44 @@ export const PREDEFINED_BADGES: Omit<Badge, 'id'>[] = [
     xpBonus: 200,
     rarity: 'rare',
   },
+
+  // Time-of-Day Badges
+  {
+    name: 'Early Riser',
+    description: 'Complete quests in the early morning (4-7am) for 5 consecutive days',
+    iconName: 'sunrise',
+    type: BadgeType.SPECIAL,
+    requirement: { type: 'special', value: 5 },
+    xpBonus: 50,
+    rarity: 'rare',
+  },
+  {
+    name: 'Night Owl',
+    description: 'Complete quests in the evening or night for 5 consecutive days',
+    iconName: 'moon',
+    type: BadgeType.SPECIAL,
+    requirement: { type: 'special', value: 5 },
+    xpBonus: 50,
+    rarity: 'rare',
+  },
+  {
+    name: 'Steady Eddie',
+    description: 'Complete quests in the same time bucket for 7 consecutive days',
+    iconName: 'clock',
+    type: BadgeType.SPECIAL,
+    requirement: { type: 'special', value: 7 },
+    xpBonus: 75,
+    rarity: 'epic',
+  },
+  {
+    name: 'Dawn Patrol',
+    description: 'Complete all active daily quests before 9am for 5 consecutive days',
+    iconName: 'shield-check',
+    type: BadgeType.SPECIAL,
+    requirement: { type: 'special', value: 5 },
+    xpBonus: 100,
+    rarity: 'epic',
+  },
 ];
 
 // -------------------- Compassionate Streak Config --------------------

@@ -5,7 +5,11 @@ import { validateBody } from '../middleware/validate';
 import { authenticate, optionalAuth, AuthEnv } from '../middleware/auth';
 import { Errors } from '../middleware/errorHandler';
 import { prisma } from '../lib/prisma';
-import { ApiResponse, Quest, HealthDataSource, WatchData, WatchQuest, getTimeBucket } from '@dydyd/shared';
+import {
+  ApiResponse, Quest, HealthDataSource, WatchData, WatchQuest, getTimeBucket,
+  checkEarlyRiserBadge, checkNightOwlBadge, checkSteadyEddieBadge, checkDawnPatrolBadge,
+  TimeBadgeCompletion,
+} from '@dydyd/shared';
 import { checkAndAutoApplyFreeze, trackActiveDay, calculateOverallDayStreak } from '../lib/streaks';
 
 const app = new Hono<AuthEnv>();
@@ -302,6 +306,13 @@ app.post('/:id/complete', authenticate, async (c) => {
     console.error('Failed to track active day for user', userId);
   }
 
+  // Check and award time-of-day badges (non-critical)
+  try {
+    await checkAndAwardTimeBadges(userId);
+  } catch {
+    console.error('Failed to check time-of-day badges for user', userId);
+  }
+
   const response: ApiResponse<{ completion: any; userQuest: any; xpEarned: number }> = {
     success: true,
     data: {
@@ -492,5 +503,117 @@ app.get('/watch-sync', authenticate, async (c) => {
 
   return c.json(response);
 });
+
+// -------------------- Time-of-Day Badge Award Logic --------------------
+
+/**
+ * Badge name -> checker function mapping for time-of-day badges.
+ * Dawn Patrol requires a second argument (active daily quest count) and is
+ * handled separately.
+ */
+const TIME_BADGE_NAMES = ['Early Riser', 'Night Owl', 'Steady Eddie', 'Dawn Patrol'] as const;
+
+async function checkAndAwardTimeBadges(userId: string): Promise<void> {
+  // Find which of the 4 time-badges the user has NOT yet earned
+  const earnedBadges = await prisma.userBadge.findMany({
+    where: { userId },
+    include: { badge: true },
+  });
+  const earnedNames = new Set(earnedBadges.map((ub) => ub.badge.name));
+
+  const unearnedTimeBadgeNames = TIME_BADGE_NAMES.filter((n) => !earnedNames.has(n));
+  if (unearnedTimeBadgeNames.length === 0) return;
+
+  // Fetch recent completions (last 10 days covers all badge windows)
+  const tenDaysAgo = new Date();
+  tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+  const completions = await prisma.questCompletion.findMany({
+    where: {
+      userQuest: { userId },
+      completedAt: { gte: tenDaysAgo },
+    },
+    select: {
+      completedAt: true,
+      timeBucket: true,
+    },
+    orderBy: { completedAt: 'desc' },
+  });
+
+  const validCompletions: TimeBadgeCompletion[] = completions
+    .filter((c): c is typeof c & { timeBucket: string } => c.timeBucket !== null)
+    .map((c) => ({
+      completedAt: c.completedAt,
+      timeBucket: c.timeBucket,
+    }));
+
+  if (validCompletions.length === 0) return;
+
+  // Evaluate each unearned time badge
+  const newlyEarned: string[] = [];
+
+  for (const badgeName of unearnedTimeBadgeNames) {
+    let earned = false;
+
+    switch (badgeName) {
+      case 'Early Riser':
+        earned = checkEarlyRiserBadge(validCompletions);
+        break;
+      case 'Night Owl':
+        earned = checkNightOwlBadge(validCompletions);
+        break;
+      case 'Steady Eddie':
+        earned = checkSteadyEddieBadge(validCompletions);
+        break;
+      case 'Dawn Patrol': {
+        // Dawn Patrol needs count of active daily-frequency quests
+        const activeDailyCount = await prisma.userQuest.count({
+          where: {
+            userId,
+            isActive: true,
+            quest: { frequency: 'daily' },
+          },
+        });
+        earned = checkDawnPatrolBadge(validCompletions, activeDailyCount);
+        break;
+      }
+    }
+
+    if (earned) {
+      newlyEarned.push(badgeName);
+    }
+  }
+
+  if (newlyEarned.length === 0) return;
+
+  // Award badges: look up Badge rows by name, create UserBadge, grant XP bonus
+  const badgeRows = await prisma.badge.findMany({
+    where: { name: { in: newlyEarned } },
+  });
+
+  if (badgeRows.length === 0) return;
+
+  const xpBonus = badgeRows.reduce((sum, b) => sum + b.xpBonus, 0);
+
+  await prisma.$transaction([
+    ...badgeRows.map((badge) =>
+      prisma.userBadge.upsert({
+        where: {
+          userId_badgeId: { userId, badgeId: badge.id },
+        },
+        create: { userId, badgeId: badge.id },
+        update: {}, // no-op if already exists (idempotent)
+      })
+    ),
+    ...(xpBonus > 0
+      ? [
+          prisma.user.update({
+            where: { id: userId },
+            data: { totalXP: { increment: xpBonus } },
+          }),
+        ]
+      : []),
+  ]);
+}
 
 export default app;
