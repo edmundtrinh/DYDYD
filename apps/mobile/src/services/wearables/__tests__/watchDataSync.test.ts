@@ -6,13 +6,10 @@ import { UserQuest, QuestCategory, QuestFrequency } from '@dydyd/shared';
 import { WatchMessageType, WatchMessage } from '../watchConnectivityService';
 
 // Mock the watch connectivity service
-const mockUpdateApplicationContext = jest.fn().mockResolvedValue(true);
-const mockOnMessage = jest.fn().mockReturnValue(() => {});
-
 jest.mock('../watchConnectivityService', () => ({
   watchConnectivityService: {
-    updateApplicationContext: mockUpdateApplicationContext,
-    onMessage: mockOnMessage,
+    updateApplicationContext: jest.fn().mockResolvedValue(true),
+    onMessage: jest.fn().mockReturnValue(() => {}),
   },
   WatchMessageType: {
     SYNC_QUESTS: 'SYNC_QUESTS',
@@ -22,6 +19,11 @@ jest.mock('../watchConnectivityService', () => ({
     UPDATE_COMPLICATIONS: 'UPDATE_COMPLICATIONS',
   },
 }));
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { watchConnectivityService: mockService } = require('../watchConnectivityService');
+const mockUpdateApplicationContext = mockService.updateApplicationContext as jest.Mock;
+const mockOnMessage = mockService.onMessage as jest.Mock;
 
 import {
   syncQuestsToWatch,
