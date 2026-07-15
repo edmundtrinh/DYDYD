@@ -925,3 +925,348 @@ The following features have UI implemented but are not fully wired to the backen
 | Reminder Time picker | NotificationsScreen | Chevron row has no `onPress`. Shows "9:00 AM" as static text. |
 | Export Data | SettingsScreen | Row present but not wired. |
 | Delete Account (UI) | SettingsScreen | Button visible but may lack `onPress` handler. Redux thunk and API service exist. |
+
+---
+
+## 4. Phase 4A Feature Tests
+
+> These tests cover features merged in Phase 4A: iOS Widgets (M1), Apple Watch Companion (M2), Compassionate Streaks (M3), and History Logging (M4). iOS Widget and watchOS tests require a **MacBook with Xcode**. Streak and history tests can run on **Android Emulator** (backend-driven features).
+
+### 4.1 iOS Widgets (Milestone 1)
+
+> **Platform:** Physical iPhone or iOS Simulator (macOS + Xcode required)
+> **Prerequisites:** Dev build installed via `npx expo prebuild --platform ios` + Xcode build, or EAS dev client build.
+
+---
+
+### TC-049: Add Small Widget to Home Screen
+**Platform:** iOS (Physical or Simulator)
+**Prerequisites:** DYDYD app installed and logged in with active quests.
+**Steps:**
+1. Long-press on the iOS home screen until icons jiggle.
+2. Tap the "+" button in the top-left corner.
+3. Search for "DYDYD" in the widget gallery.
+4. Select the Small widget.
+5. Tap "Add Widget" and position it on the home screen.
+**Expected Result:** The small widget renders showing the current streak count and a daily XP progress ring. Data matches what the app shows on the HomeScreen.
+**Edge Cases to Try:**
+- With zero completions today, verify the progress ring shows 0%
+- With zero streak, verify streak count shows 0
+
+---
+
+### TC-050: Add Medium Widget With Interactive Buttons
+**Platform:** iOS (Physical or Simulator, iOS 17+ for interactivity)
+**Prerequisites:** DYDYD app installed, logged in, at least 3 active daily quests.
+**Steps:**
+1. Add the Medium DYDYD widget to the home screen.
+2. Observe the widget displays up to 3 daily quests with check buttons.
+3. Tap a quest's check button directly on the widget (iOS 17+ interactive widgets).
+4. Observe the widget updates.
+**Expected Result:** The medium widget shows the top 3 daily quests with names and interactive completion buttons. Tapping a check button marks the quest as completed — the button changes to a checkmark state. The XP counter on the widget updates.
+**Edge Cases to Try:**
+- Complete all 3 displayed quests via widget and verify the widget shows all as done
+- On iOS 16 (no interactive widgets), verify the widget is tap-to-open only (tapping opens the app)
+
+---
+
+### TC-051: Add Large Widget (Full Dashboard)
+**Platform:** iOS (Physical or Simulator)
+**Prerequisites:** DYDYD app installed, logged in, active quests with some completions.
+**Steps:**
+1. Add the Large DYDYD widget to the home screen.
+2. Review all displayed information.
+**Expected Result:** The large widget renders a full daily dashboard: progress rings per category, current streak, daily XP total, and a list of quests with completion status. Layout is readable and not truncated.
+**Edge Cases to Try:**
+- With many active quests (10+), verify the widget does not overflow or clip content
+- With zero activity, verify the dashboard shows empty/zero states cleanly
+
+---
+
+### TC-052: StandBy Mode Widget Display
+**Platform:** Physical iPhone (iOS 17+, requires MagSafe or Lightning charger)
+**Prerequisites:** DYDYD widget added to home screen. iPhone on a charger in landscape orientation.
+**Steps:**
+1. Place the iPhone on a charger in landscape orientation.
+2. Lock the screen — StandBy Mode should activate.
+3. Swipe to the widgets view in StandBy.
+4. Find the DYDYD widget.
+**Expected Result:** The DYDYD widget renders in full-screen StandBy format, optimized for the always-on display. Content is legible at nightstand distance. Colors are dimmed appropriately for nighttime viewing.
+**Edge Cases to Try:**
+- Verify the widget updates periodically while in StandBy (timeline refresh)
+
+---
+
+### TC-053: Widget Data Freshness After App Activity
+**Platform:** iOS (Physical or Simulator)
+**Prerequisites:** DYDYD widget on home screen. App open.
+**Steps:**
+1. Note the current widget state (XP, streak, quest completion status).
+2. Open the DYDYD app and complete a quest.
+3. Return to the home screen and observe the widget.
+**Expected Result:** The widget updates to reflect the new completion within the WidgetKit timeline refresh window. The XP count increments and the completed quest shows a checkmark. Note: WidgetKit refreshes are not instant — updates may take up to 15 minutes unless the app explicitly reloads the timeline.
+**Edge Cases to Try:**
+- Force a timeline reload by removing and re-adding the widget
+
+---
+
+### 4.2 Apple Watch Companion (Milestone 2)
+
+> **Platform:** Apple Watch (physical Series 4+ or watchOS Simulator via Xcode)
+> **Prerequisites:** macOS with Xcode, `npx expo prebuild --platform ios`, watchOS target built and installed. iPhone paired with Watch (physical) or Simulator pairing configured.
+
+---
+
+### TC-054: watchOS App — Build Verification
+**Platform:** macOS + Xcode
+**Prerequisites:** Repository cloned, `yarn install` complete.
+**Steps:**
+1. Run `npx expo prebuild --platform ios` from `apps/mobile/`.
+2. Open the generated `ios/` workspace in Xcode.
+3. Verify the watchOS target appears in the scheme selector.
+4. Select the watchOS target and build for Watch Simulator (or physical Watch).
+5. Check the build log for errors.
+**Expected Result:** All 8 Swift files compile without errors:
+- `DYDYDWatchApp.swift` — App entry point
+- `QuestListView.swift` — Quest list screen
+- `QuestRowView.swift` — Individual quest row
+- `ProgressRingView.swift` — Circular progress indicator
+- `ConnectivityManager.swift` — WatchConnectivity bridge (dual date parsing, send queue guard)
+- `HealthKitManager.swift` — HealthKit integration (`authorizationRequested` flag)
+- `ComplicationProvider.swift` — Watch face complications
+- `Models.swift` — Data models (includes `questId` field)
+
+---
+
+### TC-055: Watch App — Quest List Display
+**Platform:** Apple Watch (physical or Simulator)
+**Prerequisites:** Watch app built and installed. iPhone app logged in with active daily quests.
+**Steps:**
+1. Open the DYDYD app on Apple Watch.
+2. Observe the quest list.
+**Expected Result:** The Watch app displays today's daily quests with quest name, icon, and XP value. Quests that are already completed show a checkmark. The list scrolls smoothly via the Digital Crown.
+**Edge Cases to Try:**
+- With zero active quests, verify an empty state message appears
+- With 10+ daily quests, verify scrolling works and no items are cut off
+
+---
+
+### TC-056: Watch App — Quick-Complete a Quest
+**Platform:** Apple Watch (physical or Simulator)
+**Prerequisites:** Watch app showing at least one incomplete quest.
+**Steps:**
+1. Tap on an incomplete quest in the Watch quest list.
+2. Observe the completion feedback.
+3. Check the iPhone app to verify the completion synced.
+**Expected Result:** The quest shows a completion animation on Watch. The quest row updates to show a checkmark. The iPhone app reflects the completion (XP updated, quest marked done) after WatchConnectivity sync.
+**Edge Cases to Try:**
+- Complete a quest on Watch while the iPhone app is in the foreground vs. background
+- Complete a quest on Watch while iPhone is out of Bluetooth range (should queue and sync later)
+
+---
+
+### TC-057: Watch App — Progress Ring
+**Platform:** Apple Watch (physical or Simulator)
+**Prerequisites:** Watch app installed, some quests completed today.
+**Steps:**
+1. Open the Watch app and observe the progress ring at the top.
+2. Complete a quest and observe the ring update.
+**Expected Result:** The progress ring shows the percentage of daily quests completed. The ring animates as progress increases. Colors match the app's theme.
+**Edge Cases to Try:**
+- At 100% completion, verify the ring fills completely with a distinct visual indicator
+
+---
+
+### TC-058: Watch Complications
+**Platform:** Apple Watch (physical or Simulator)
+**Prerequisites:** Watch app installed.
+**Steps:**
+1. Long-press the watch face to enter edit mode.
+2. Select a complication slot and browse to DYDYD.
+3. Add the DYDYD complication (streak count or progress ring).
+4. Return to the watch face.
+**Expected Result:** The complication renders on the watch face showing current streak or daily progress. Data updates periodically via the complication timeline.
+**Edge Cases to Try:**
+- Test circular, modular, and graphic complication families
+- Verify the complication is legible on different watch face styles
+
+---
+
+### TC-059: WatchConnectivity — Phone-to-Watch Sync
+**Platform:** Apple Watch + iPhone (physical pair or Simulator)
+**Prerequisites:** Both apps installed and running.
+**Steps:**
+1. Complete a quest on the iPhone app.
+2. Open the Watch app and observe if the quest status updates.
+3. Check that todayXP, streak, and level reflect the phone's state.
+**Expected Result:** The Watch receives an `applicationContext` update from the iPhone within seconds. Quest completion status, XP, streak, and level are all current. The `ConnectivityManager` handles both ISO string and numeric date formats for `lastSyncTime`.
+**Edge Cases to Try:**
+- Kill the Watch app, complete a quest on iPhone, then reopen the Watch app — queued context should be received on launch
+- Complete quests rapidly on the phone and verify the Watch doesn't miss updates
+
+---
+
+### TC-060: Watch HealthKit Auto-Logging
+**Platform:** Physical Apple Watch (HealthKit not available in Simulator)
+**Prerequisites:** Watch app installed. HealthKit permissions granted.
+**Steps:**
+1. Open the Watch app — it should request HealthKit authorization on first launch.
+2. Grant access to step count, workout data, and sleep analysis.
+3. Record a workout on the Watch (e.g., via the Workout app).
+4. Check if a matching health-related quest auto-completes in DYDYD.
+**Expected Result:** The `HealthKitManager` uses `authorizationRequested` (not `isAuthorized`) to check permission state. After granting permissions, health data from the Watch flows into DYDYD. Quests linked to health data sources (steps, workouts, sleep) auto-complete when thresholds are met.
+**Edge Cases to Try:**
+- Deny HealthKit permissions and verify the app degrades gracefully (no crash, health quests stay manual)
+- Verify `NSHealthShareUsageDescription` appears in the permission dialog
+
+---
+
+### 4.3 Compassionate Streaks (Milestone 3)
+
+> **Platform:** Android Emulator or iOS (backend-driven, platform-agnostic)
+> **Prerequisites:** Logged in with active quests. Backend running with streak-related schema fields (`streakFreezes`, `maxStreakFreezes`, `activeDaysCount`, `lastActiveDate`, `streakFreezeUsedAt`).
+
+---
+
+### TC-061: Streak Freeze — Earning Freezes
+**Platform:** Android Emulator
+**Prerequisites:** Fresh account with 0 streak freezes.
+**Steps:**
+1. Complete at least one quest every day for 7 consecutive days.
+2. After day 7, call `GET /api/streaks/status` (or observe the UI if streak freeze count is displayed).
+**Expected Result:** After 7 active days, the user earns 1 streak freeze. The `streakFreezes` field increments by 1. Maximum streak freezes cap at `maxStreakFreezes` (default 3). The `activeDaysCount` increments each day a quest is completed via `trackActiveDay()`.
+**Edge Cases to Try:**
+- Verify freezes cap at 3 (complete 28 consecutive days and confirm no more than 3 are banked)
+- Verify `activeDaysCount` only increments once per calendar day (completing 5 quests in one day = 1 active day)
+
+---
+
+### TC-062: Streak Freeze — Auto-Apply on Missed Day
+**Platform:** Android Emulator
+**Prerequisites:** User has at least 1 streak freeze banked. User has a multi-day streak.
+**Steps:**
+1. Build up a streak (complete quests for several consecutive days).
+2. Intentionally skip one day (no quest completions).
+3. On the following day, complete a quest.
+**Expected Result:** When `checkAndAutoApplyFreeze()` runs after the next quest completion, it detects the 1-day gap since `lastActiveDate`, auto-applies a streak freeze, and preserves the streak. The `streakFreezes` count decrements by 1. The `streakFreezeUsedAt` updates to today. The streak count continues unbroken.
+**Edge Cases to Try:**
+- Skip 2 consecutive days with only 1 freeze available — the streak should break (only 1 freeze per gap day)
+- Use `POST /api/streaks/freeze` to manually apply a freeze and verify the transaction atomicity (wrapped in `$transaction`)
+
+---
+
+### TC-063: Streak Freeze — Zero Freezes Available
+**Platform:** Android Emulator
+**Prerequisites:** User has 0 streak freezes and an active streak.
+**Steps:**
+1. Skip one day of quest completions.
+2. Complete a quest the next day.
+3. Check streak status via `GET /api/streaks/status`.
+**Expected Result:** With no freezes available, the streak resets. `calculateFreezeAwareDayStreak()` calculates the streak as starting from the current active day (not 0→1 — it looks back at historic completions before the gap). The comeback quest system activates.
+**Edge Cases to Try:**
+- Verify the streak doesn't show a misleading "1" — it should reflect the actual consecutive days since the gap
+
+---
+
+### TC-064: Comeback Quest — Offered After Absence
+**Platform:** Android Emulator
+**Prerequisites:** User was active, then missed 1-14 days.
+**Steps:**
+1. After missing at least 1 day, call `GET /api/streaks/comeback`.
+2. Observe the comeback quest data.
+**Expected Result:** The API returns a comeback quest with 1.5x XP bonus (`COMEBACK_CONFIG.bonusXPMultiplier`). The comeback quest is available for absences of 1-14 days (`COMEBACK_CONFIG.maxMissedDays`). The response includes `comebackXP` calculated via `calculateComebackXP()`.
+**Edge Cases to Try:**
+- After 15+ days of absence, verify no comeback quest is offered (past the 14-day window)
+- Complete the comeback quest and verify the bonus XP is credited to the user's total
+
+---
+
+### TC-065: Progressive Onboarding — Initial Quest Limit
+**Platform:** Android Emulator
+**Prerequisites:** Fresh account, first day of use.
+**Steps:**
+1. Register a new account and complete onboarding.
+2. Check how many quests can be activated.
+**Expected Result:** New users start with a limit of 3 active quests (`PROGRESSIVE_ONBOARDING.initialQuestLimit`). The UI should communicate this limit clearly. Attempting to activate a 4th quest shows an appropriate message.
+**Edge Cases to Try:**
+- Verify the limit is enforced on the backend (not just UI)
+
+---
+
+### TC-066: Progressive Onboarding — Unlocking More Quests
+**Platform:** Android Emulator
+**Prerequisites:** Account with several active days.
+**Steps:**
+1. Use the app actively for 3+ days.
+2. After every 3 active days, check the quest activation limit.
+**Expected Result:** Every 3 active days (`PROGRESSIVE_ONBOARDING.daysToUnlockMore`), the user unlocks 2 additional quest slots (`PROGRESSIVE_ONBOARDING.maxQuestsPerUnlock`). The limit progression is: 3 → 5 → 7 → 9 → ... calculated by `getOnboardingQuestLimit(activeDaysCount)`.
+**Edge Cases to Try:**
+- Verify the formula: `initialQuestLimit + floor(activeDays / daysToUnlockMore) * maxQuestsPerUnlock`
+
+---
+
+### 4.4 History Logging (Milestone 4)
+
+> **Platform:** Android Emulator or iOS (backend-driven)
+> **Prerequisites:** Backend running with `timeBucket` field on `QuestCompletion` model. At least a few quest completions at different times of day.
+
+---
+
+### TC-067: TimeBucket Auto-Recording
+**Platform:** Android Emulator
+**Prerequisites:** Backend running. Logged in with active quests.
+**Steps:**
+1. Complete a quest and note the current time.
+2. Query the quest completion record (via API or database inspection).
+3. Verify the `timeBucket` field.
+**Expected Result:** Every quest completion automatically records a `timeBucket` value based on the server time:
+- EARLY_MORNING: 4am-7am
+- MORNING: 7am-12pm
+- AFTERNOON: 12pm-5pm
+- EVENING: 5pm-9pm
+- NIGHT: 9pm-4am
+The `getTimeBucket(new Date())` utility determines the bucket. No user action is required — it's silent logging.
+**Edge Cases to Try:**
+- Complete quests at boundary times (e.g., exactly 7:00am, 12:00pm) and verify correct bucket assignment
+- Verify existing completions without `timeBucket` (pre-migration) have `null` and don't cause errors
+
+---
+
+### TC-068: Weekly Digest Endpoint
+**Platform:** Android Emulator
+**Prerequisites:** At least one week of quest completion data.
+**Steps:**
+1. Call `GET /api/progress/weekly-digest` with auth token.
+2. Review the response.
+**Expected Result:** The endpoint returns weekly summary data including total completions, XP earned, streak status, and week-over-week comparison. The response is validated with Zod schemas. Dates are properly bounded to the current week.
+**Edge Cases to Try:**
+- Call on a Monday with no completions yet this week (should return zeros, not errors)
+- Call with a brand new account (no history — should return empty/zero data)
+
+---
+
+### TC-069: Completion History Endpoint
+**Platform:** Android Emulator
+**Prerequisites:** Multiple quest completions across different days and categories.
+**Steps:**
+1. Call `GET /api/progress/history` with auth token.
+2. Call with query params: `?category=physical_health` to filter by category.
+3. Call with date range params if supported.
+**Expected Result:** The endpoint returns a chronological list of quest completions. Each entry includes the quest name, category, XP earned, completion timestamp, and `timeBucket`. Filtering by `category` uses `z.nativeEnum(QuestCategory)` validation. The `where` clause uses `Prisma.QuestCompletionWhereInput` (no `as any`). Query params are accessed via `c.get('validatedQuery')`.
+**Edge Cases to Try:**
+- Filter by a category with no completions (should return empty array, not error)
+- Pass an invalid category string (should return 400 validation error from Zod)
+- Request with no query params (should return all completions, paginated if applicable)
+
+---
+
+### TC-070: TimeBucket Distribution in History
+**Platform:** Android Emulator
+**Prerequisites:** Quest completions spread across multiple time buckets.
+**Steps:**
+1. Complete quests at different times of day (or use the backend directly to create test data).
+2. Query the history endpoint.
+3. Group completions by `timeBucket` and verify distribution.
+**Expected Result:** Each completion's `timeBucket` accurately reflects when it was recorded. The distribution can be used to identify patterns (e.g., "most completions happen in the MORNING bucket"). This data feeds the future Phase 5 timing pattern insights feature.
+**Edge Cases to Try:**
+- Verify completions made during overnight hours (11pm-3am) are correctly assigned to NIGHT bucket
