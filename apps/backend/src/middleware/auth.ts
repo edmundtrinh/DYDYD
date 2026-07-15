@@ -1,4 +1,5 @@
 import { Context, Next } from 'hono';
+import { randomUUID } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { AppError } from './errorHandler';
 
@@ -96,7 +97,7 @@ export const generateRefreshToken = (userId: string, email: string): string => {
       : 'your-refresh-secret-change-in-production'
   );
   return jwt.sign(
-    { userId, email },
+    { userId, email, jti: randomUUID() },
     refreshSecret,
     { expiresIn: 604800 }
   );
