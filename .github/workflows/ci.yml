@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Generate Prisma client
+        run: yarn workspace @dydyd/backend prisma generate
+
       - name: Build shared package
         run: yarn workspace @dydyd/shared build
 
@@ -107,6 +110,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
+
+      - name: Generate Prisma client
+        run: yarn workspace @dydyd/backend prisma generate
 
       - name: Build shared package
         run: yarn workspace @dydyd/shared build
