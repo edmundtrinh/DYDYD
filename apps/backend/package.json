@@ -13,7 +13,9 @@
     "lint": "eslint 'src/**/*.ts'",
     "db:migrate": "bunx prisma migrate dev",
     "db:generate": "bunx prisma generate",
-    "db:seed": "bun prisma/seed.ts"
+    "db:seed": "bun prisma/seed.ts",
+    "perf:benchmark": "bun run scripts/benchmark.ts",
+    "perf:benchmark:verbose": "ENABLE_PERF_LOGGING=true bun run scripts/benchmark.ts"
   },
   "dependencies": {
     "@dydyd/shared": "workspace:*",
