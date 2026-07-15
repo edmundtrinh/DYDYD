@@ -19,11 +19,9 @@ export const HealthIntegrationsScreen: React.FC = () => {
         <View
           key={integration.name}
           style={styles.card}
-          accessible
-          accessibilityLabel={`${integration.name}, ${integration.connected ? 'connected' : 'not connected'}`}
         >
           <Text style={styles.emoji} accessible={false}>{integration.emoji}</Text>
-          <View style={styles.cardText}>
+          <View style={styles.cardText} accessible accessibilityLabel={`${integration.name}, ${integration.connected ? 'connected' : 'not connected'}`}>
             <Text style={styles.cardName}>{integration.name}</Text>
             <Text style={styles.cardStatus}>
               {integration.connected ? 'Connected' : 'Not connected'}

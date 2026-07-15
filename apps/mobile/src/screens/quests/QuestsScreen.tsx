@@ -380,6 +380,15 @@ const QuestLibraryCard: React.FC<QuestLibraryCardProps> = ({
         activeOpacity={0.9}
         accessibilityRole="button"
         accessibilityLabel={`${quest.name}, ${categoryData.name}, ${quest.baseXP} XP, ${isActive ? 'active' : 'inactive'}`}
+        accessibilityHint="Double tap to view details. Use actions menu to activate or deactivate."
+        accessibilityActions={[
+          { name: 'activate', label: isActive ? 'Deactivate quest' : 'Activate quest' },
+        ]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === 'activate') {
+            isActive ? onDeactivate() : onActivate();
+          }
+        }}
       >
         {/* Left color indicator */}
         <View style={[styles.questColorBar, { backgroundColor: categoryData.color }]} />
@@ -417,7 +426,7 @@ const QuestLibraryCard: React.FC<QuestLibraryCardProps> = ({
           )}
         </View>
 
-        {/* Action button */}
+        {/* Action button — exposed via parent accessibilityActions for screen readers */}
         <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();
@@ -427,8 +436,7 @@ const QuestLibraryCard: React.FC<QuestLibraryCardProps> = ({
             styles.actionButton,
             isActive ? styles.actionButtonActive : styles.actionButtonInactive,
           ]}
-          accessibilityRole="button"
-          accessibilityLabel={isActive ? 'Deactivate quest' : 'Activate quest'}
+          importantForAccessibility="no-hide-descendants"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={[
