@@ -18,7 +18,10 @@
     "e2e:launch": "maestro test .maestro/01-app-launch.yaml",
     "e2e:register": "maestro test .maestro/02-auth-register.yaml",
     "e2e:navigation": "maestro test .maestro/03-tab-navigation.yaml",
-    "e2e:studio": "maestro studio"
+    "e2e:studio": "maestro studio",
+    "eas:update:preview": "eas update --branch preview",
+    "eas:update:production": "eas update --branch production",
+    "eas:update:message": "eas update --branch preview --message"
   },
   "dependencies": {
     "@dydyd/shared": "workspace:*",
@@ -31,6 +34,7 @@
     "axios": "^1.6.0",
     "date-fns": "^3.0.0",
     "expo": "~50.0.0",
+    "expo-updates": "~0.24.0",
     "expo-build-properties": "~0.11.0",
     "prettier": "^3.8.0",
     "react": "18.2.0",
