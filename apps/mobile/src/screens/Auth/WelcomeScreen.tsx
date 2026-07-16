@@ -5,12 +5,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Button } from '../../components/Button';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const { colors, typography, spacing, radii } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const logoScale = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -21,6 +23,17 @@ export const WelcomeScreen: React.FC = () => {
   const actionsTranslateY = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
+    if (reduceMotion) {
+      logoScale.setValue(1);
+      logoOpacity.setValue(1);
+      titleOpacity.setValue(1);
+      titleTranslateY.setValue(0);
+      subtitleOpacity.setValue(1);
+      actionsOpacity.setValue(1);
+      actionsTranslateY.setValue(0);
+      return;
+    }
+
     Animated.stagger(200, [
       // Shield icon entrance
       Animated.parallel([
@@ -70,6 +83,7 @@ export const WelcomeScreen: React.FC = () => {
       ]),
     ]).start();
   }, [
+    reduceMotion,
     logoScale,
     logoOpacity,
     titleOpacity,
@@ -94,7 +108,7 @@ export const WelcomeScreen: React.FC = () => {
             },
           ]}
         >
-          <Text style={styles.shieldEmoji}>{'\u{1F6E1}\u{FE0F}'}</Text>
+          <Text style={styles.shieldEmoji} accessible={false}>{'\u{1F6E1}\u{FE0F}'}</Text>
         </Animated.View>
 
         {/* Logo text */}

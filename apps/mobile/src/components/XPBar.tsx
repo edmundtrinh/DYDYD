@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 interface XPBarProps {
   currentXP: number;
@@ -18,24 +19,36 @@ export const XPBar: React.FC<XPBarProps> = ({
   showLabel = true,
 }) => {
   const { colors, radii, typography, spacing } = useTheme();
+  const reduceMotion = useReducedMotion();
   const progress = requiredXP > 0 ? Math.min(currentXP / requiredXP, 1) : 0;
   const animatedWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(animatedWidth, {
-      toValue: progress,
-      duration: 600,
-      useNativeDriver: false,
-    }).start();
-  }, [progress, animatedWidth]);
+    if (reduceMotion) {
+      animatedWidth.setValue(progress);
+    } else {
+      Animated.timing(animatedWidth, {
+        toValue: progress,
+        duration: 600,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [progress, animatedWidth, reduceMotion]);
 
   const widthInterpolated = animatedWidth.interpolate({
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
   });
 
+  const percentComplete = Math.round(progress * 100);
+
   return (
-    <View>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Level ${level} progress: ${currentXP} of ${requiredXP} XP, ${percentComplete}% complete`}
+      accessibilityValue={{ min: 0, max: requiredXP, now: currentXP }}
+    >
       {showLabel && (
         <View style={[styles.labelRow, { marginBottom: spacing.xs }]}>
           <Text

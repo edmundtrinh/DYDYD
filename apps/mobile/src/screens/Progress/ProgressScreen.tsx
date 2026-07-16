@@ -150,8 +150,14 @@ export const ProgressScreen: React.FC = () => {
             const barHeight = day.xp > 0 ? Math.max((day.xp / maxWeeklyXP) * 80, 8) : 8;
             const isToday = i === ((new Date().getDay() + 6) % 7);
 
+            const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             return (
-              <View key={`${day.day}-${i}`} style={styles.dayColumn}>
+              <View
+                key={`${day.day}-${i}`}
+                style={styles.dayColumn}
+                accessible
+                accessibilityLabel={`${fullDayNames[i]}: ${day.xp} XP, ${day.completed} quests completed${isToday ? ', today' : ''}`}
+              >
                 <Text
                   style={{
                     color: day.xp > 0 ? colors.primaryBright : colors.textTertiary,
@@ -234,6 +240,7 @@ export const ProgressScreen: React.FC = () => {
             const meta = CATEGORY_METADATA[cat.category];
             const barWidth = `${Math.max((cat.totalXP / maxCatXP) * 100, 3)}%` as `${number}%`;
 
+            const catPercent = Math.round((cat.totalXP / maxCatXP) * 100);
             return (
               <View
                 key={cat.category}
@@ -244,6 +251,8 @@ export const ProgressScreen: React.FC = () => {
                     paddingVertical: spacing.md,
                   },
                 ]}
+                accessible
+                accessibilityLabel={`${meta.name}: ${cat.totalXP} XP, ${cat.completions} completions, ${catPercent}% of top category`}
               >
                 <CategoryIcon category={cat.category} size={36} />
                 <View style={styles.categoryContent}>
@@ -314,8 +323,10 @@ export const ProgressScreen: React.FC = () => {
           },
         ]}
         onPress={() => navigation.navigate('Badges')}
+        accessibilityRole="link"
+        accessibilityLabel="View all badges"
       >
-        <Text style={styles.badgesEmoji}>{'\u{1F3C6}'}</Text>
+        <Text style={styles.badgesEmoji} accessible={false}>{'\u{1F3C6}'}</Text>
         <Text
           style={{
             color: colors.xp,

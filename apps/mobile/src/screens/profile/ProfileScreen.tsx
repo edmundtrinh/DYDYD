@@ -149,17 +149,22 @@ const ProfileScreen: React.FC = () => {
         {/* Header with Settings */}
         <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity onPress={handleSettingsPress} style={styles.settingsButton}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+          <TouchableOpacity
+            onPress={handleSettingsPress}
+            style={styles.settingsButton}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
+            <Text style={styles.settingsIcon} accessible={false}>⚙️</Text>
           </TouchableOpacity>
         </Animated.View>
 
         {/* Profile Card */}
         <Animated.View entering={FadeInDown.delay(200)} style={styles.profileCard}>
           {/* Avatar */}
-          <View style={styles.avatarContainer}>
+          <View style={styles.avatarContainer} accessible accessibilityLabel={`Profile avatar for ${profile?.displayName || 'Adventurer'}${isPremium ? ', Premium member' : ''}`}>
             {profile?.avatarUrl ? (
-              <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} />
+              <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} accessibilityElementsHidden />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>
@@ -168,8 +173,8 @@ const ProfileScreen: React.FC = () => {
               </View>
             )}
             {isPremium && (
-              <View style={styles.premiumBadge}>
-                <Text style={styles.premiumIcon}>👑</Text>
+              <View style={styles.premiumBadge} accessible={false}>
+                <Text style={styles.premiumIcon} accessible={false}>👑</Text>
               </View>
             )}
           </View>
@@ -184,7 +189,13 @@ const ProfileScreen: React.FC = () => {
           </View>
 
           {/* XP Progress */}
-          <View style={styles.xpSection}>
+          <View
+            style={styles.xpSection}
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={`XP progress: ${formatNumber(levelProgress.xpInCurrentLevel)} of ${formatNumber(levelProgress.xpForNextLevel)} XP, ${Math.round(levelProgress.progressPercent)}% to level ${userLevel + 1}`}
+            accessibilityValue={{ min: 0, max: levelProgress.xpForNextLevel, now: levelProgress.xpInCurrentLevel }}
+          >
             <View style={styles.xpLabels}>
               <Text style={styles.xpCurrent}>{formatNumber(levelProgress.xpInCurrentLevel)} XP</Text>
               <Text style={styles.xpTarget}>{formatNumber(levelProgress.xpForNextLevel)} XP</Text>
@@ -206,7 +217,7 @@ const ProfileScreen: React.FC = () => {
 
         {/* Stats Overview */}
         <Animated.View entering={FadeInDown.delay(300)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Statistics</Text>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Statistics</Text>
           <View style={styles.statsGrid}>
             <StatCard
               icon="🔥"
@@ -244,8 +255,8 @@ const ProfileScreen: React.FC = () => {
         {badges.length > 0 && (
           <Animated.View entering={FadeInDown.delay(400)} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Badges</Text>
-              <TouchableOpacity onPress={handleBadgesPress}>
+              <Text style={styles.sectionTitle} accessibilityRole="header">Recent Badges</Text>
+              <TouchableOpacity onPress={handleBadgesPress} accessibilityRole="link" accessibilityLabel="See all badges">
                 <Text style={styles.seeAllText}>See All →</Text>
               </TouchableOpacity>
             </View>
@@ -268,7 +279,7 @@ const ProfileScreen: React.FC = () => {
 
         {/* Category Breakdown */}
         <Animated.View entering={FadeInDown.delay(500)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Active Quests by Category</Text>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Active Quests by Category</Text>
           <View style={styles.categoryList}>
             {Object.entries(CATEGORY_METADATA).map(([category, meta], index) => {
               const questCount = questsByCategory[category as QuestCategory];
@@ -294,7 +305,7 @@ const ProfileScreen: React.FC = () => {
 
         {/* Account Info */}
         <Animated.View entering={FadeInDown.delay(600)} style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Account</Text>
           <View style={styles.accountCard}>
             <View style={styles.accountRow}>
               <Text style={styles.accountLabel}>Email</Text>
@@ -356,12 +367,16 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color, delay, o
     if (onPress) scale.value = withSpring(1);
   };
 
+  const accessibleDescription = `${label}: ${formatNumber(value)}`;
   const content = (
     <Animated.View
       entering={FadeInDown.delay(delay)}
       style={[styles.statCard, animatedStyle, { borderTopColor: color }]}
+      accessible
+      accessibilityLabel={accessibleDescription}
+      accessibilityRole={onPress ? 'button' : undefined}
     >
-      <Text style={styles.statIcon}>{icon}</Text>
+      <Text style={styles.statIcon} accessible={false}>{icon}</Text>
       <Text style={styles.statValue}>{formatNumber(value)}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </Animated.View>
@@ -374,6 +389,8 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color, delay, o
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={accessibleDescription}
       >
         {content}
       </TouchableOpacity>
@@ -398,9 +415,13 @@ const BadgeCard: React.FC<BadgeCardProps> = ({ badge, earnedAt }) => {
   };
 
   return (
-    <View style={[styles.badgeCard, { borderColor: rarityColors[badge.rarity] || '#9E9E9E' }]}>
-      <View style={[styles.badgeIconContainer, { backgroundColor: (rarityColors[badge.rarity] || '#9E9E9E') + '20' }]}>
-        <Text style={styles.badgeIcon}>🏅</Text>
+    <View
+      style={[styles.badgeCard, { borderColor: rarityColors[badge.rarity] || '#9E9E9E' }]}
+      accessible
+      accessibilityLabel={`${badge.name}, ${badge.rarity} badge, earned`}
+    >
+      <View style={[styles.badgeIconContainer, { backgroundColor: (rarityColors[badge.rarity] || '#9E9E9E') + '20' }]} accessible={false}>
+        <Text style={styles.badgeIcon} accessible={false}>🏅</Text>
       </View>
       <Text style={styles.badgeName} numberOfLines={1}>{badge.name}</Text>
       <Text style={styles.badgeRarity}>{badge.rarity}</Text>
@@ -427,9 +448,13 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
   completions,
 }) => {
   return (
-    <View style={styles.categoryRow}>
-      <View style={[styles.categoryIcon, { backgroundColor: color + '20' }]}>
-        <Text style={styles.categoryIconText}>{icon}</Text>
+    <View
+      style={styles.categoryRow}
+      accessible
+      accessibilityLabel={`${name}: ${questCount} active quests, ${completions} completions, ${formatNumber(totalXP)} XP`}
+    >
+      <View style={[styles.categoryIcon, { backgroundColor: color + '20' }]} accessible={false}>
+        <Text style={styles.categoryIconText} accessible={false}>{icon}</Text>
       </View>
       <View style={styles.categoryInfo}>
         <Text style={styles.categoryName}>{name}</Text>

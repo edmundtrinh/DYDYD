@@ -93,6 +93,8 @@ export const Input: React.FC<InputProps> = ({
           <TouchableOpacity
             onPress={() => setPasswordVisible((v) => !v)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
           >
             <Text
               style={{
@@ -119,6 +121,8 @@ export const Input: React.FC<InputProps> = ({
               marginTop: spacing.xs,
             },
           ]}
+          accessibilityRole={error ? 'alert' : undefined}
+          accessibilityLiveRegion={error ? 'polite' : undefined}
         >
           {error || helperText}
         </Text>

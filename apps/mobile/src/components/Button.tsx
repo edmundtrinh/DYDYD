@@ -80,6 +80,9 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={loading ? `${title}, loading` : title}
+      accessibilityState={{ disabled: isDisabled }}
       style={[
         styles.base,
         { borderRadius: radii.pill },
@@ -93,6 +96,8 @@ export const Button: React.FC<ButtonProps> = ({
         <ActivityIndicator
           size="small"
           color={variant === 'primary' ? '#FFFFFF' : colors.textSecondary}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
         />
       ) : (
         <Text

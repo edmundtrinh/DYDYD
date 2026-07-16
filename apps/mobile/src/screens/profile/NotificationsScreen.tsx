@@ -21,7 +21,7 @@ export const NotificationsScreen: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Reminders</Text>
+        <Text style={styles.sectionTitle} accessibilityRole="header">Reminders</Text>
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowLabel}>Daily Reminder</Text>
@@ -32,9 +32,10 @@ export const NotificationsScreen: React.FC = () => {
             onValueChange={handleNotificationsToggle}
             trackColor={{ false: '#3A3A55', true: '#2EA043' }}
             thumbColor="#FFFFFF"
+            accessibilityLabel="Daily reminder"
           />
         </View>
-        <View style={styles.row}>
+        <View style={styles.row} accessible accessibilityRole="button" accessibilityLabel={`Reminder time: ${settings?.dailyReminderTime ?? '9:00 AM'}`}>
           <View style={styles.rowText}>
             <Text style={styles.rowLabel}>Reminder Time</Text>
             <Text style={styles.rowDesc}>{settings?.dailyReminderTime ?? '9:00 AM'}</Text>
@@ -44,7 +45,7 @@ export const NotificationsScreen: React.FC = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Alerts</Text>
+        <Text style={styles.sectionTitle} accessibilityRole="header">Alerts</Text>
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowLabel}>Streak at Risk</Text>
@@ -55,6 +56,7 @@ export const NotificationsScreen: React.FC = () => {
             onValueChange={handleNotificationsToggle}
             trackColor={{ false: '#3A3A55', true: '#2EA043' }}
             thumbColor="#FFFFFF"
+            accessibilityLabel="Streak at risk alerts"
           />
         </View>
         <View style={styles.row}>
@@ -67,6 +69,7 @@ export const NotificationsScreen: React.FC = () => {
             onValueChange={handleSoundToggle}
             trackColor={{ false: '#3A3A55', true: '#2EA043' }}
             thumbColor="#FFFFFF"
+            accessibilityLabel="Achievement notifications"
           />
         </View>
       </View>

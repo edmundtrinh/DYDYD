@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, AccessibilityInfo } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,6 +11,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useTheme } from '../theme/ThemeProvider';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 interface QuestCompletionOverlayProps {
   visible: boolean;
@@ -28,6 +29,7 @@ export const QuestCompletionOverlay: React.FC<QuestCompletionOverlayProps> = ({
   onDismiss,
 }) => {
   const { colors, typography, spacing } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const overlayOpacity = useSharedValue(0);
   const checkScale = useSharedValue(0);
@@ -49,32 +51,43 @@ export const QuestCompletionOverlay: React.FC<QuestCompletionOverlayProps> = ({
       return;
     }
 
-    overlayOpacity.value = withSequence(
-      withTiming(1, { duration: 200 }),
-      withDelay(ANIMATION_DURATION - 400, withTiming(0, { duration: 200 })),
-    );
+    if (reduceMotion) {
+      overlayOpacity.value = 1;
+      checkScale.value = 1;
+      xpOpacity.value = 1;
+      xpTranslateY.value = -40;
+      xpScale.value = 1;
+    } else {
+      overlayOpacity.value = withSequence(
+        withTiming(1, { duration: 200 }),
+        withDelay(ANIMATION_DURATION - 400, withTiming(0, { duration: 200 })),
+      );
 
-    checkScale.value = withSequence(
-      withDelay(100, withSpring(1.2, { damping: 8, stiffness: 200 })),
-      withSpring(1, { damping: 12 }),
-    );
+      checkScale.value = withSequence(
+        withDelay(100, withSpring(1.2, { damping: 8, stiffness: 200 })),
+        withSpring(1, { damping: 12 }),
+      );
 
-    xpOpacity.value = withSequence(
-      withDelay(300, withTiming(1, { duration: 200 })),
-      withDelay(ANIMATION_DURATION - 700, withTiming(0, { duration: 200 })),
-    );
-    xpTranslateY.value = withDelay(
-      300,
-      withTiming(-40, { duration: ANIMATION_DURATION - 500, easing: Easing.out(Easing.quad) }),
-    );
-    xpScale.value = withDelay(300, withSpring(1, { damping: 10, stiffness: 150 }));
+      xpOpacity.value = withSequence(
+        withDelay(300, withTiming(1, { duration: 200 })),
+        withDelay(ANIMATION_DURATION - 700, withTiming(0, { duration: 200 })),
+      );
+      xpTranslateY.value = withDelay(
+        300,
+        withTiming(-40, { duration: ANIMATION_DURATION - 500, easing: Easing.out(Easing.quad) }),
+      );
+      xpScale.value = withDelay(300, withSpring(1, { damping: 10, stiffness: 150 }));
+    }
+
+    // Announce for screen readers
+    AccessibilityInfo.announceForAccessibility(`Quest complete! ${questName}. Earned ${xpEarned} XP`);
 
     const timer = setTimeout(() => {
       runOnJS(dismiss)();
     }, ANIMATION_DURATION);
 
     return () => clearTimeout(timer);
-  }, [visible, overlayOpacity, checkScale, xpTranslateY, xpOpacity, xpScale, dismiss]);
+  }, [visible, reduceMotion, questName, xpEarned, overlayOpacity, checkScale, xpTranslateY, xpOpacity, xpScale, dismiss]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,

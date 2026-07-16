@@ -3,9 +3,9 @@ import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 
 export const LoadingScreen: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.logo}>DYDYD</Text>
-      <ActivityIndicator size="large" color="#2EA043" />
+    <View style={styles.container} accessible accessibilityLabel="Loading DYDYD">
+      <Text style={styles.logo} accessible={false}>DYDYD</Text>
+      <ActivityIndicator size="large" color="#2EA043" accessibilityLabel="Loading" />
     </View>
   );
 };

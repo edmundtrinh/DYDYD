@@ -52,6 +52,11 @@ jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(() => Promise.resolve({ isConnected: true, type: 'wifi' })),
 }));
 
+// Mock useReducedMotion hook (AccessibilityInfo is not fully mocked in test env)
+jest.mock('./src/hooks/useReducedMotion', () => ({
+  useReducedMotion: jest.fn(() => false),
+}));
+
 // Mock react-native-haptic-feedback
 jest.mock('react-native-haptic-feedback', () => ({
   trigger: jest.fn(),

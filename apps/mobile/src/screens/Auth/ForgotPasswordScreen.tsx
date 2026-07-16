@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, AccessibilityInfo } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { isValidEmail } from '@dydyd/shared';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 export const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors, typography, spacing, radii } = useTheme();
+  const reduceMotion = useReducedMotion();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [sent, setSent] = useState(false);
@@ -20,21 +22,27 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   useEffect(() => {
     if (sent) {
-      Animated.parallel([
-        Animated.timing(successOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.spring(successScale, {
-          toValue: 1,
-          tension: 60,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      if (reduceMotion) {
+        successOpacity.setValue(1);
+        successScale.setValue(1);
+      } else {
+        Animated.parallel([
+          Animated.timing(successOpacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.spring(successScale, {
+            toValue: 1,
+            tension: 60,
+            friction: 8,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+      AccessibilityInfo.announceForAccessibility('Password reset email sent. Check your email for a reset link.');
     }
-  }, [sent, successOpacity, successScale]);
+  }, [sent, reduceMotion, successOpacity, successScale]);
 
   const handleReset = async () => {
     setEmailError('');

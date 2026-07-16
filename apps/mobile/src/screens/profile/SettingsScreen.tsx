@@ -66,7 +66,7 @@ export const SettingsScreen: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferences</Text>
+        <Text style={styles.sectionTitle} accessibilityRole="header">Preferences</Text>
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Dark Mode</Text>
           <Switch
@@ -74,6 +74,7 @@ export const SettingsScreen: React.FC = () => {
             onValueChange={handleDarkModeToggle}
             trackColor={{ false: '#3A3A55', true: '#2EA043' }}
             thumbColor="#FFFFFF"
+            accessibilityLabel="Dark mode"
           />
         </View>
         <View style={styles.row}>
@@ -83,33 +84,34 @@ export const SettingsScreen: React.FC = () => {
             onValueChange={handleHapticToggle}
             trackColor={{ false: '#3A3A55', true: '#2EA043' }}
             thumbColor="#FFFFFF"
+            accessibilityLabel="Haptic feedback"
           />
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Integrations</Text>
-        <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('Notifications')}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">Integrations</Text>
+        <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('Notifications')} accessibilityRole="button" accessibilityLabel="Notifications">
           <Text style={styles.rowLabel}>Notifications</Text>
           <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('HealthIntegrations')}>
+        <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('HealthIntegrations')} accessibilityRole="button" accessibilityLabel="Health integrations">
           <Text style={styles.rowLabel}>Health Integrations</Text>
           <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        <TouchableOpacity style={styles.row}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">Account</Text>
+        <TouchableOpacity style={styles.row} accessibilityRole="button" accessibilityLabel="Export data">
           <Text style={styles.rowLabel}>Export Data</Text>
           <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.row} onPress={handleLogout}>
+        <TouchableOpacity style={styles.row} onPress={handleLogout} accessibilityRole="button" accessibilityLabel="Log out">
           <Text style={styles.rowLabel}>Log Out</Text>
           <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.row} onPress={handleDeleteAccount}>
+        <TouchableOpacity style={styles.row} onPress={handleDeleteAccount} accessibilityRole="button" accessibilityLabel="Delete account" accessibilityHint="This will permanently delete your account and all data">
           <Text style={[styles.rowLabel, { color: '#DC2626' }]}>Delete Account</Text>
           <Text style={styles.rowChevron}>{'\u{203A}'}</Text>
         </TouchableOpacity>

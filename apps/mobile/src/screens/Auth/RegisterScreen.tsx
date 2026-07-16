@@ -150,6 +150,8 @@ export const RegisterScreen: React.FC = () => {
                 marginBottom: spacing.base,
               },
             ]}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
           >
             <Text style={{ color: colors.redBright, fontSize: typography.sizeBodySm }}>
               {serverError}
@@ -201,8 +203,14 @@ export const RegisterScreen: React.FC = () => {
             />
             {/* Password strength indicator */}
             {password.length > 0 && (
-              <View style={[styles.strengthRow, { marginTop: spacing.sm }]}>
-                <View style={styles.strengthBars}>
+              <View
+                style={[styles.strengthRow, { marginTop: spacing.sm }]}
+                accessible
+                accessibilityLabel={`Password strength: ${pwStrength.label}, ${pwStrength.score} of 4`}
+                accessibilityRole="progressbar"
+                accessibilityValue={{ min: 0, max: 4, now: pwStrength.score }}
+              >
+                <View style={styles.strengthBars} importantForAccessibility="no-hide-descendants">
                   {[1, 2, 3, 4].map((i) => (
                     <View
                       key={i}
@@ -224,6 +232,7 @@ export const RegisterScreen: React.FC = () => {
                     fontWeight: typography.weightSemi,
                     marginLeft: spacing.sm,
                   }}
+                  importantForAccessibility="no"
                 >
                   {pwStrength.label}
                 </Text>
@@ -256,6 +265,8 @@ export const RegisterScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.footer, { marginTop: spacing['2xl'] }]}
           onPress={() => navigation.navigate('Login')}
+          accessibilityRole="link"
+          accessibilityLabel="Already have an account? Log in"
         >
           <Text style={{ color: colors.textTertiary, fontSize: typography.sizeBodySm }}>
             {'Already have an account? '}

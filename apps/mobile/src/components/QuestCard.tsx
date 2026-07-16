@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   PanResponder,
   TouchableOpacity,
   ViewStyle,
+  AccessibilityActionEvent,
 } from 'react-native';
 import { QuestCategory } from '@dydyd/shared';
 import { useTheme } from '../theme/ThemeProvider';
@@ -46,6 +47,21 @@ export const QuestCard: React.FC<QuestCardProps> = ({
   const catEmoji = getCategoryEmoji(category);
   const hasProgress = targetValue != null && targetValue > 1;
   const progress = hasProgress ? Math.min((currentValue || 0) / targetValue, 1) : 0;
+
+  const handleAccessibilityAction = useCallback((event: AccessibilityActionEvent) => {
+    if (event.nativeEvent.actionName === 'activate' && onPress) {
+      onPress();
+    } else if (event.nativeEvent.actionName === 'complete' && onComplete && !completed) {
+      onComplete();
+    }
+  }, [onPress, onComplete, completed]);
+
+  const accessibilityActions = [
+    ...(onPress ? [{ name: 'activate' as const, label: 'View quest details' }] : []),
+    ...(!completed && onComplete ? [{ name: 'complete' as const, label: 'Mark quest as complete' }] : []),
+  ];
+
+  const questLabel = `${name}, ${frequency}, ${xpReward} XP${completed ? ', completed' : ''}${streak > 0 ? `, ${streak} day streak` : ''}${hasProgress ? `, ${Math.round(progress * 100)}% progress` : ''}`;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -102,6 +118,13 @@ export const QuestCard: React.FC<QuestCardProps> = ({
           activeOpacity={0.85}
           onPress={onPress}
           disabled={!onPress}
+          accessible
+          accessibilityLabel={questLabel}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: completed }}
+          accessibilityActions={accessibilityActions}
+          onAccessibilityAction={handleAccessibilityAction}
+          accessibilityHint={!completed && onComplete ? 'Swipe left to complete, or use actions menu' : undefined}
           style={[
             styles.container,
             {
@@ -130,8 +153,10 @@ export const QuestCard: React.FC<QuestCardProps> = ({
                 marginLeft: spacing.sm,
               },
             ]}
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
           >
-            <Text style={styles.iconEmoji}>{catEmoji}</Text>
+            <Text style={styles.iconEmoji} accessible={false}>{catEmoji}</Text>
           </View>
 
           {/* Content */}

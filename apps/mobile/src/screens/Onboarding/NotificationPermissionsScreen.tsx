@@ -25,23 +25,32 @@ export const NotificationPermissionsScreen: React.FC = () => {
       </View>
       <View style={styles.features}>
         <View style={styles.feature}>
-          <Text style={styles.featureEmoji}>⏰</Text>
+          <Text style={styles.featureEmoji} accessible={false}>⏰</Text>
           <Text style={styles.featureText}>Daily quest reminders</Text>
         </View>
         <View style={styles.feature}>
-          <Text style={styles.featureEmoji}>🔥</Text>
+          <Text style={styles.featureEmoji} accessible={false}>🔥</Text>
           <Text style={styles.featureText}>Streak-at-risk alerts</Text>
         </View>
         <View style={styles.feature}>
-          <Text style={styles.featureEmoji}>🏆</Text>
+          <Text style={styles.featureEmoji} accessible={false}>🏆</Text>
           <Text style={styles.featureText}>Achievement celebrations</Text>
         </View>
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.button} onPress={handleAllow}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleAllow}
+          accessibilityRole="button"
+          accessibilityLabel="Enable notifications"
+        >
           <Text style={styles.buttonText}>Enable Notifications</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('OnboardingComplete')}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('OnboardingComplete')}
+          accessibilityRole="button"
+          accessibilityLabel="Skip notification permissions"
+        >
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </View>

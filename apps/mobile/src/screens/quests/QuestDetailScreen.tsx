@@ -200,7 +200,13 @@ const QuestDetailScreen: React.FC = () => {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quest Details</Text>
@@ -217,8 +223,8 @@ const QuestDetailScreen: React.FC = () => {
           entering={FadeInDown.delay(200)}
           style={[styles.questHeader, { borderColor: categoryData?.color }]}
         >
-          <View style={[styles.questIconLarge, { backgroundColor: categoryData?.color + '20' }]}>
-            <Text style={styles.questIconText}>{categoryData?.icon}</Text>
+          <View style={[styles.questIconLarge, { backgroundColor: categoryData?.color + '20' }]} accessible={false}>
+            <Text style={styles.questIconText} accessible={false}>{categoryData?.icon}</Text>
           </View>
 
           <Text style={styles.questName}>{quest.name}</Text>
@@ -323,8 +329,9 @@ const QuestDetailScreen: React.FC = () => {
                       value={customValue}
                       onChangeText={setCustomValue}
                       placeholder={`e.g., ${quest.targetValue}`}
-                      placeholderTextColor="#666666"
+                      placeholderTextColor="#9E9EB8"
                       keyboardType="numeric"
+                      accessibilityLabel={`Value in ${quest.unit}`}
                     />
                   </View>
                 )}
@@ -333,6 +340,9 @@ const QuestDetailScreen: React.FC = () => {
                 <TouchableOpacity
                   style={styles.notesToggle}
                   onPress={() => setShowNotes(!showNotes)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showNotes }}
+                  accessibilityLabel={showNotes ? 'Hide notes' : 'Add notes'}
                 >
                   <Text style={styles.notesToggleText}>
                     {showNotes ? '- Hide notes' : '+ Add notes'}
@@ -347,9 +357,10 @@ const QuestDetailScreen: React.FC = () => {
                       value={notes}
                       onChangeText={setNotes}
                       placeholder="How did it go? (optional)"
-                      placeholderTextColor="#666666"
+                      placeholderTextColor="#9E9EB8"
                       multiline
                       numberOfLines={3}
+                      accessibilityLabel="Quest notes"
                     />
                   </Animated.View>
                 )}
@@ -364,6 +375,9 @@ const QuestDetailScreen: React.FC = () => {
                     ]}
                     onPress={handleComplete}
                     disabled={isLoading}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Mark quest as complete, earn ${quest.baseXP} XP`}
+                    accessibilityState={{ disabled: isLoading }}
                   >
                     {isLoading ? (
                       <ActivityIndicator color="#FFFFFF" />
@@ -388,6 +402,9 @@ const QuestDetailScreen: React.FC = () => {
               isActive ? styles.deactivateButton : styles.activateButton,
             ]}
             onPress={handleToggleActive}
+            accessibilityRole="button"
+            accessibilityLabel={isActive ? 'Deactivate Quest' : 'Activate Quest'}
+            accessibilityHint={isActive ? 'This will deactivate the quest' : 'This will activate the quest for daily tracking'}
           >
             <Text style={[
               styles.actionButtonText,
@@ -623,7 +640,7 @@ const styles = StyleSheet.create({
   },
   lastCompletedLabel: {
     fontSize: 13,
-    color: '#666666',
+    color: '#9E9EB8',
   },
   lastCompletedValue: {
     fontSize: 13,
@@ -740,7 +757,7 @@ const styles = StyleSheet.create({
   },
   activateHint: {
     fontSize: 13,
-    color: '#666666',
+    color: '#9E9EB8',
     marginTop: 12,
     textAlign: 'center',
   },

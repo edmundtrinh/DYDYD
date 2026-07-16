@@ -85,6 +85,7 @@ export const AddQuestScreen: React.FC = () => {
           value={name}
           onChangeText={setName}
           maxLength={100}
+          accessibilityLabel="Quest name"
         />
       </View>
 
@@ -99,6 +100,7 @@ export const AddQuestScreen: React.FC = () => {
           multiline
           numberOfLines={3}
           maxLength={500}
+          accessibilityLabel="Quest description"
         />
       </View>
 
@@ -113,7 +115,7 @@ export const AddQuestScreen: React.FC = () => {
               accessibilityRole="radio"
               accessibilityState={{ selected: category === cat.id }}
             >
-              <Text style={styles.chipEmoji}>{cat.emoji}</Text>
+              <Text style={styles.chipEmoji} accessible={false}>{cat.emoji}</Text>
               <Text style={[styles.chipLabel, category === cat.id && { color: cat.color }]}>{cat.label}</Text>
             </TouchableOpacity>
           ))}
@@ -143,6 +145,8 @@ export const AddQuestScreen: React.FC = () => {
         style={[styles.createButton, isSubmitting && styles.createButtonDisabled]}
         onPress={handleCreate}
         disabled={isSubmitting}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isSubmitting }}
       >
         <Text style={styles.createButtonText}>
           {isSubmitting ? 'Creating...' : 'Create Quest'}

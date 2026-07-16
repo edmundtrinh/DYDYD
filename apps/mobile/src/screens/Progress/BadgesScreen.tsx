@@ -103,7 +103,11 @@ export const BadgesScreen: React.FC = () => {
 
         return (
           <View key={group.rarity}>
-            <View style={[styles.sectionHeader, { marginBottom: spacing.md }]}>
+            <View
+              style={[styles.sectionHeader, { marginBottom: spacing.md }]}
+              accessibilityRole="header"
+              accessibilityLabel={`${RARITY_LABELS[group.rarity] || group.rarity}, ${group.badges.length} badges`}
+            >
               <View
                 style={[
                   styles.sectionDot,

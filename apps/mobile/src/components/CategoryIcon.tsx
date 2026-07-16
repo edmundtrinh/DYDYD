@@ -47,8 +47,10 @@ export const CategoryIcon: React.FC<CategoryIconProps> = ({
         },
         style,
       ]}
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
     >
-      <Text style={{ fontSize: size * 0.45 }}>{emoji}</Text>
+      <Text style={{ fontSize: size * 0.45 }} accessible={false}>{emoji}</Text>
     </View>
   );
 };

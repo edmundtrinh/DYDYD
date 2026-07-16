@@ -4,10 +4,12 @@ import { useAppDispatch } from '../../store/hooks';
 import { setOnboarded } from '../../store/slices/authSlice';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Button } from '../../components/Button';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 export const OnboardingCompleteScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const { colors, typography, spacing, radii } = useTheme();
+  const reduceMotion = useReducedMotion();
 
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconOpacity = useRef(new Animated.Value(0)).current;
@@ -24,6 +26,23 @@ export const OnboardingCompleteScreen: React.FC = () => {
   const shimmer3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (reduceMotion) {
+      // Skip all animations — set final values immediately
+      iconScale.setValue(1);
+      iconOpacity.setValue(1);
+      titleOpacity.setValue(1);
+      titleTranslateY.setValue(0);
+      subtitleOpacity.setValue(1);
+      statsOpacity.setValue(1);
+      statsTranslateY.setValue(0);
+      ctaOpacity.setValue(1);
+      // Static shimmer: show particles at half opacity, no animation
+      shimmer1.setValue(0.5);
+      shimmer2.setValue(0.5);
+      shimmer3.setValue(0.5);
+      return;
+    }
+
     // Main entrance sequence
     Animated.stagger(180, [
       Animated.parallel([
@@ -75,7 +94,7 @@ export const OnboardingCompleteScreen: React.FC = () => {
       }),
     ]).start();
 
-    // Shimmer animations (looping)
+    // Shimmer animations (looping) — only when reduced motion is off
     const createShimmer = (value: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
@@ -97,6 +116,7 @@ export const OnboardingCompleteScreen: React.FC = () => {
     createShimmer(shimmer2, 500).start();
     createShimmer(shimmer3, 1000).start();
   }, [
+    reduceMotion,
     iconScale, iconOpacity, titleOpacity, titleTranslateY,
     subtitleOpacity, statsOpacity, statsTranslateY, ctaOpacity,
     shimmer1, shimmer2, shimmer3,
@@ -105,13 +125,15 @@ export const OnboardingCompleteScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.hero}>
-        {/* Floating celebration particles */}
+        {/* Floating celebration particles (decorative) */}
         <Animated.Text
           style={[
             styles.particle,
             styles.particle1,
             { opacity: shimmer1 },
           ]}
+          accessible={false}
+          importantForAccessibility="no"
         >
           {'\u{2728}'}
         </Animated.Text>
@@ -121,6 +143,8 @@ export const OnboardingCompleteScreen: React.FC = () => {
             styles.particle2,
             { opacity: shimmer2 },
           ]}
+          accessible={false}
+          importantForAccessibility="no"
         >
           {'\u{2B50}'}
         </Animated.Text>
@@ -130,6 +154,8 @@ export const OnboardingCompleteScreen: React.FC = () => {
             styles.particle3,
             { opacity: shimmer3 },
           ]}
+          accessible={false}
+          importantForAccessibility="no"
         >
           {'\u{1F389}'}
         </Animated.Text>
@@ -146,7 +172,7 @@ export const OnboardingCompleteScreen: React.FC = () => {
             },
           ]}
         >
-          <Text style={styles.mainEmoji}>{'\u{2694}\u{FE0F}'}</Text>
+          <Text style={styles.mainEmoji} accessible={false}>{'\u{2694}\u{FE0F}'}</Text>
         </Animated.View>
 
         {/* Title */}
@@ -207,8 +233,10 @@ export const OnboardingCompleteScreen: React.FC = () => {
                 padding: spacing.base,
               },
             ]}
+            accessible
+            accessibilityLabel="Starting level: Level 1"
           >
-            <Text style={styles.statEmoji}>{'\u{1F6E1}\u{FE0F}'}</Text>
+            <Text style={styles.statEmoji} accessible={false}>{'\u{1F6E1}\u{FE0F}'}</Text>
             <Text
               style={{
                 color: colors.primaryBright,
@@ -239,8 +267,10 @@ export const OnboardingCompleteScreen: React.FC = () => {
                 padding: spacing.base,
               },
             ]}
+            accessible
+            accessibilityLabel="Total XP: 0"
           >
-            <Text style={styles.statEmoji}>{'\u{2B50}'}</Text>
+            <Text style={styles.statEmoji} accessible={false}>{'\u{2B50}'}</Text>
             <Text
               style={{
                 color: colors.goldBright,
