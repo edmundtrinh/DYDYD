@@ -23,6 +23,7 @@ import userReducer from './slices/userSlice';
 import healthReducer from './slices/healthSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import uiReducer from './slices/uiSlice';
+import spriteReducer from './slices/spriteSlice';
 
 // Import middleware
 import { widgetSyncMiddleware } from './middleware/widgetSync';
@@ -36,6 +37,7 @@ const rootReducer = combineReducers({
   health: healthReducer,
   notifications: notificationsReducer,
   ui: uiReducer,
+  sprite: spriteReducer,
 });
 
 // Persist configuration

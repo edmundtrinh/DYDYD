@@ -21,6 +21,7 @@ import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { SettingsScreen } from '../screens/profile/SettingsScreen';
 import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
 import { HealthIntegrationsScreen } from '../screens/profile/HealthIntegrationsScreen';
+import { SpriteScreen } from '../screens/SpriteScreen';
 
 // Type definitions for navigation
 export type HomeStackParamList = {
@@ -56,6 +57,7 @@ export type MainTabParamList = {
   Home: undefined;
   Quests: undefined;
   Progress: undefined;
+  Sprite: undefined;
   Profile: undefined;
 };
 
@@ -206,6 +208,9 @@ export const MainTabNavigator: React.FC = () => {
             case 'Progress':
               iconName = 'bar-chart-2';
               break;
+            case 'Sprite':
+              iconName = 'zap';
+              break;
             case 'Profile':
               iconName = 'user';
               break;
@@ -226,6 +231,11 @@ export const MainTabNavigator: React.FC = () => {
       <Tab.Screen name="Home" component={HomeStackNavigator} />
       <Tab.Screen name="Quests" component={QuestsStackNavigator} />
       <Tab.Screen name="Progress" component={ProgressStackNavigator} />
+      <Tab.Screen
+        name="Sprite"
+        component={SpriteScreen}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen name="Profile" component={ProfileStackNavigator} />
     </Tab.Navigator>
   );

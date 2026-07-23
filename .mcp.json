@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "dydyd": {
+      "command": "node",
+      "args": ["packages/mcp-server/dist/index.js"],
+      "env": {
+        "DYDYD_API_URL": "http://localhost:3000",
+        "DYDYD_API_TOKEN": "<your-token>"
+      }
+    }
+  }
+}

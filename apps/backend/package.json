@@ -21,6 +21,7 @@
     "test:integration": "jest --config jest.integration.config.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.113.0",
     "@dydyd/shared": "workspace:*",
     "@hono/node-server": "^1.14.0",
     "@hono/zod-validator": "^0.5.0",
