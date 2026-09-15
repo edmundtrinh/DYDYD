@@ -24,6 +24,10 @@
     "turbo": "^2.0.0",
     "typescript": "^5.3.0"
   },
+  "resolutions": {
+    "pkg-dir": "^5.0.0",
+    "find-up": "^5.0.0"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
