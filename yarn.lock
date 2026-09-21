@@ -2126,6 +2126,8 @@ __metadata:
     "@types/jsonwebtoken": "npm:^9.0.5"
     "@types/node": "npm:^20.11.0"
     "@types/uuid": "npm:^9.0.8"
+    "@typescript-eslint/eslint-plugin": "npm:^7.0.0"
+    "@typescript-eslint/parser": "npm:^7.0.0"
     bcryptjs: "npm:^2.4.3"
     dayjs: "npm:^1.11.10"
     dotenv: "npm:^16.4.0"
@@ -2209,6 +2211,8 @@ __metadata:
   dependencies:
     "@types/jest": "npm:^29.5.11"
     "@types/node": "npm:^20.11.0"
+    "@typescript-eslint/eslint-plugin": "npm:^7.0.0"
+    "@typescript-eslint/parser": "npm:^7.0.0"
     jest: "npm:^29.7.0"
     jest-util: "npm:^29.7.0"
     ts-jest: "npm:^29.1.1"
