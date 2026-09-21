@@ -7,7 +7,11 @@ jest.mock('react-native-reanimated', () =>
 );
 
 // Silence the warning: Animated: `useNativeDriver` is not supported
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+// NOTE: NativeAnimatedHelper was removed from React Native in 0.74+,
+// so this must be a virtual mock (no module resolution).
+jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({}), {
+  virtual: true,
+});
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () =>
