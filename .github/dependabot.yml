@@ -12,7 +12,10 @@ updates:
         patterns:
           - "expo*"
           - "@expo/*"
+      react-native:
+        patterns:
           - "react-native*"
+          - "@react-native*"
       prisma:
         patterns:
           - "@prisma/*"

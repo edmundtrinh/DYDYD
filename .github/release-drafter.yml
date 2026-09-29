@@ -53,12 +53,15 @@ autolabeler:
   - label: shared
     files:
       - 'packages/shared/**'
+  - label: design
+    files:
+      - 'packages/design/**'
   - label: ci
     files:
       - '.github/**'
   - label: docs
     files:
-      - '*.md'
+      - '**/*.md'
       - 'docs/**'
 
 template: |

@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/mobile/**'
       - 'packages/shared/**'
+      - 'packages/design/**'
       - 'package.json'
       - 'yarn.lock'
 
@@ -57,5 +58,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '📱 EAS Preview build started! Check [Expo dashboard](https://expo.dev) for build status.'
+              body: '📱 EAS Preview build completed successfully. Check [Expo dashboard](https://expo.dev) for download links.'
             })
