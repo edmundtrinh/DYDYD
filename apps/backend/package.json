@@ -28,7 +28,7 @@
     "bcryptjs": "^2.4.3",
     "dayjs": "^1.11.10",
     "dotenv": "^16.4.0",
-    "firebase-admin": "^12.0.0",
+    "firebase-admin": "^14.5.0",
     "hono": "^4.7.0",
     "jsonwebtoken": "^9.0.2",
     "redis": "^4.6.12",
