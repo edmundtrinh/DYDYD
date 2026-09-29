@@ -1,0 +1,36 @@
+backend:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/backend/**'
+
+mobile:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/mobile/**'
+
+shared:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/shared/**'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'yarn.lock'
+          - '**/package.json'
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'turbo.json'
+          - 'tsconfig*.json'
+          - '.eslintrc*'
+          - '.prettierrc*'

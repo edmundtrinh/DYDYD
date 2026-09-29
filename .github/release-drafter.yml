@@ -1,0 +1,69 @@
+name-template: v$RESOLVED_VERSION
+tag-template: v$RESOLVED_VERSION
+
+categories:
+  - title: New Features
+    labels:
+      - feature
+      - enhancement
+  - title: Bug Fixes
+    labels:
+      - bug
+      - fix
+  - title: Backend
+    labels:
+      - backend
+  - title: Mobile
+    labels:
+      - mobile
+  - title: Infrastructure
+    labels:
+      - ci
+      - dependencies
+      - infrastructure
+  - title: Documentation
+    labels:
+      - docs
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels:
+      - major
+  minor:
+    labels:
+      - feature
+      - enhancement
+  patch:
+    labels:
+      - bug
+      - fix
+      - dependencies
+  default: patch
+
+autolabeler:
+  - label: backend
+    files:
+      - 'apps/backend/**'
+  - label: mobile
+    files:
+      - 'apps/mobile/**'
+  - label: shared
+    files:
+      - 'packages/shared/**'
+  - label: ci
+    files:
+      - '.github/**'
+  - label: docs
+    files:
+      - '*.md'
+      - 'docs/**'
+
+template: |
+  ## Changes
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
