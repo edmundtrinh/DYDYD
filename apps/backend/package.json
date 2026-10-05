@@ -24,7 +24,7 @@
     "@dydyd/shared": "workspace:*",
     "@hono/node-server": "^1.14.0",
     "@hono/zod-validator": "^0.5.0",
-    "@prisma/client": "5.22.0",
+    "@prisma/client": "7.10.0",
     "bcryptjs": "^2.4.3",
     "dayjs": "^1.11.10",
     "dotenv": "^16.4.0",
@@ -43,7 +43,7 @@
     "@types/node": "^20.11.0",
     "@types/uuid": "^9.0.8",
     "jest": "^29.7.0",
-    "prisma": "5.22.0",
+    "prisma": "7.10.0",
     "ts-jest": "^29.1.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.0"
